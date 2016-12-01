@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="src\Bus.h" />
+    <ClInclude Include="src\Cpu.h" />
+    <ClInclude Include="src\DataTypes.h" />
+    <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\Input.h" />
+    <ClInclude Include="src\Mapper.h" />
+    <ClInclude Include="src\Ppu.h" />
+    <ClInclude Include="src\Renderer.h" />
+    <ClInclude Include="src\Rom.h" />
+    <ClInclude Include="src/win/targetver.h" />
+    <ClInclude Include="src\Mappers\Mapper0.h">
+      <Filter>Mappers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mappers\Mapper1.h">
+      <Filter>Mappers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Bus.cpp" />
+    <ClCompile Include="src\Cpu.cpp" />
+    <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\Input.cpp" />
+    <ClCompile Include="src\Mapper.cpp" />
+    <ClCompile Include="src\Ppu.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\Rom.cpp" />
+    <ClCompile Include="src\Mappers\Mapper0.cpp">
+      <Filter>Mappers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\win\Main.cpp" />
+    <ClCompile Include="src\Mappers\Mapper1.cpp">
+      <Filter>Mappers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Mappers">
+      <UniqueIdentifier>{0972ce61-12b9-4f7b-879e-f83fe60e8081}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

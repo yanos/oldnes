@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "Ppu::FlushTileBuffer():Ppu.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "272*240">
+            </PersistentString>
+            <PersistentString
+               value = "currentXPixel + y ">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Mapper::Mapper(std::__1::shared_ptr&lt;Rom&gt;):Mapper.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "_readWord">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Engine::Load(std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;):Engine.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "Ppu::WriteByte(unsigned short, unsigned char):Ppu.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "_vramAddr">
+            </PersistentString>
+            <PersistentString
+               value = "(int)value">
+            </PersistentString>
+            <PersistentString
+               value = "_scrollY">
+            </PersistentString>
+            <PersistentString
+               value = "_nameTables[0xf00]">
+            </PersistentString>
+            <PersistentString
+               value = "_scrollX">
+            </PersistentString>
+            <PersistentString
+               value = "_tmpVramAddr">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Mapper::ReadWord(unsigned short):Mapper.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "_readWord">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Rom::Load(std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;):Rom.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "header[1]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Ppu::WriteVramByte(unsigned short, unsigned char):Ppu.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "(address &amp; _mirroring) &amp; 0xfff">
+            </PersistentString>
+            <PersistentString
+               value = "_nameTables[0xb00]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Renderer::DrawNameTables():Renderer.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "(int)xOffset">
+            </PersistentString>
+            <PersistentString
+               value = "(int)yOffset">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Engine::RenderFrames(unsigned int):Engine.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "(_pixelPerScanline * _scanlinePerFrame) - 1">
+            </PersistentString>
+            <PersistentString
+               value = "tickEnd - tickStart">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Ppu::Step():Ppu.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "((_currentScanlinePixel + 15) / 32) + (8 * (_currentScanline / 32))">
+            </PersistentString>
+            <PersistentString
+               value = "effectiveScanlinePixel">
+            </PersistentString>
+            <PersistentString
+               value = "_currentScanline">
+            </PersistentString>
+            <PersistentString
+               value = "_currentScanlinePixel - 1">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>
