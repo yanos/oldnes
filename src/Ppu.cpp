@@ -10,26 +10,9 @@
 
 #include <cassert>
 
-Ppu::Ppu(  )
+Ppu::Ppu( std::shared_ptr<Mapper> mapper )
 {
-    /*
-    auto romPtr = rom.get();
-    
-    _mirroring = romPtr->Mirroring;
-    
-    auto chrRomSize = romPtr->ChrRomSize;
-    
-    if (chrRomSize != 0)
-    {
-        if (chrRomSize > 0x2000)
-        {
-            //Logger.Log( Logger.Level.Warning, "Ppu(): ChrRomSize is bigger than $2000." );
-        }
-        else
-        {
-            std::memcpy( _paternTables, romPtr->ChrRomData.get(), chrRomSize );
-        }
-    }*/
+    _mapper = mapper;
 }
 
 Ppu::~Ppu()
@@ -102,10 +85,7 @@ void Ppu::FlushTileBuffer()
         _ppuStatus |= 0x40;
     }
 
-    //if (xOffset + yOffset >= _screenBufferWidth * _screenBufferHeight)
-    //{
-    //    int patate = 0;
-    //}
+    assert (xOffset + yOffset < _screenBufferWidth * _screenBufferHeight);
 }
 
 u32 Ppu::Step()
@@ -162,7 +142,7 @@ u32 Ppu::Step()
                     if (_tileBuffer.Scanline != _dummyScanline)
                         FlushTileBuffer();
 
-                    u16 ntAddr = (_vramAddr & _mirroring) & 0xfff;
+                    u16 ntAddr = (_vramAddr & _mapper->GetMirroringMode()) & 0xfff;
 
                     // start fetching next tile
                     _tileBuffer.Scanline = _currentScanline;
@@ -171,7 +151,7 @@ u32 Ppu::Step()
                     _tileBuffer.NtAddr = ntAddr;
                     _tileBuffer.NtByte = _nameTables[ntAddr];
 
-                    u16 baseAttribAddr = ((_vramAddr & _mirroring) & 0xc00) + 0x3c0;
+                    u16 baseAttribAddr = ((_vramAddr & _mapper->GetMirroringMode()) & 0xc00) + 0x3c0;
                     u16 attribOffset = ((((ntAddr & 0x3ff) / 4) & 0x7)+ (8 * ((ntAddr & 0x3ff) / 128)));
                     _tileBuffer.AttribAddr = baseAttribAddr + attribOffset;
                 }
@@ -190,7 +170,7 @@ u32 Ppu::Step()
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
                     
-                    _tileBuffer.LowPatternByte = _paternTables[baseIdx + offset];
+                    _tileBuffer.LowPatternByte = _mapper->ReadChr( baseIdx + offset );
                 }
 
                 // fetch high pattern byte
@@ -201,7 +181,7 @@ u32 Ppu::Step()
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
                     
-                    _tileBuffer.HighPatternByte = _paternTables[baseIdx + offset + 8];
+                    _tileBuffer.HighPatternByte = _mapper->ReadChr( baseIdx + offset + 8 );
                 }
             }
             else if (_currentScanlinePixel > 320 && _currentScanlinePixel < 337)
@@ -215,7 +195,7 @@ u32 Ppu::Step()
                     if (_tileBuffer.Scanline != _dummyScanline)
                         FlushTileBuffer();
 
-                    u16 ntAddr = (_vramAddr & _mirroring) & 0xfff;
+                    u16 ntAddr = (_vramAddr & _mapper->GetMirroringMode()) & 0xfff;
 
                     _tileBuffer.Scanline = (_currentScanline + 1) % 240;
                     _tileBuffer.ScanlinePixel = (_currentScanlinePixel & 0x8); // 0 for 321, or 8 for 329
@@ -223,7 +203,7 @@ u32 Ppu::Step()
                     _tileBuffer.NtAddr = ntAddr;
                     _tileBuffer.NtByte = _nameTables[ntAddr];
 
-                    u16 baseAttribAddr = ((_vramAddr & _mirroring) & 0xc00) + 0x3c0;
+                    u16 baseAttribAddr = ((_vramAddr & _mapper->GetMirroringMode()) & 0xc00) + 0x3c0;
                     u16 attribOffset = ((((ntAddr & 0x3ff) / 4) & 0x7)+ (8 * ((ntAddr & 0x3ff) / 128)));
                     _tileBuffer.AttribAddr = baseAttribAddr + attribOffset;
                 }
@@ -237,7 +217,7 @@ u32 Ppu::Step()
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
                     
-                    _tileBuffer.LowPatternByte = _paternTables[baseIdx + offset];
+                    _tileBuffer.LowPatternByte = _mapper->ReadChr( baseIdx + offset );
                 }
                 else if (_currentScanlinePixel == 327 || _currentScanlinePixel == 335)
                 {
@@ -246,7 +226,7 @@ u32 Ppu::Step()
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
                     
                     _tileBuffer.HighPatternByte
-                        = _paternTables[baseIdx + offset + 8];
+                        = _mapper->ReadChr( baseIdx + offset + 8 );
                 }
             }
         }
@@ -294,6 +274,8 @@ byte Ppu::ReadByte( addr address )
 {
     byte retValue;
     
+    address &= 0x2007;
+
     switch( address )
     {
         case 0x2002:    // PPUSTATUS
@@ -323,8 +305,8 @@ byte Ppu::ReadByte( addr address )
                     bool firstPixelFound = false;
                     for (u8 j=0; j<8 && !firstPixelFound; ++j)
                     {
-                        u8 lByte = _paternTables[patternTblAddr + j];
-                        u8 hByte = _paternTables[patternTblAddr + j + 8];
+                        u8 lByte = _mapper->ReadChr( patternTblAddr + j );
+                        u8 hByte = _mapper->ReadChr( patternTblAddr + j + 8 );
                                                 
                         for (u8 i=0; i<8 && !firstPixelFound; ++i)
                         {
@@ -375,7 +357,7 @@ byte Ppu::ReadByte( addr address )
         break;
             
         default:
-            retValue = _vramReadBuffer;
+            assert (false);
             break;
     }
 
@@ -384,14 +366,14 @@ byte Ppu::ReadByte( addr address )
 
 word Ppu::ReadWord( addr address )
 {
-    (address);
-
-    // TODO it this actually used?
+    assert (false);
     return 0;
 }
 
 void Ppu::WriteByte( addr address, byte value )
 {
+    address &= 0x2007;
+
     switch( address )
     {
         case 0x2000:    // PPUCTRL
@@ -487,6 +469,7 @@ void Ppu::WriteByte( addr address, byte value )
             break;
             
         default:
+            assert (false);
             break;
     }
 }
@@ -499,11 +482,11 @@ byte Ppu::ReadVramByte( addr address )
     
     if (address < 0x2000)
     {
-        returnVal =  _paternTables[address];
+        returnVal =  _mapper->ReadChr( address );
     }
     else if (address >= 0x2000 && address < 0x3f00)
     {
-        returnVal =  _nameTables[(address & _mirroring) & 0xfff];
+        returnVal =  _nameTables[(address & _mapper->GetMirroringMode()) & 0xfff];
     }
     else if (address >= 0x3f00 && address < 0x4000)
     {
@@ -511,7 +494,7 @@ byte Ppu::ReadVramByte( addr address )
     }
     else
     {
-        // wot
+        assert (false);
     }
     
     _vramAddr += (_ppuCtrl & 0x4) > 0 ? 32 : 1;
@@ -525,12 +508,12 @@ void Ppu::WriteVramByte( addr address, byte value )
     
     if (address < 0x2000)
     {
-        _paternTables[address] = value;
+        _mapper->WriteChr( address, value );
         _patternTableDirty = true;
     }
     else if (address >= 0x2000 && address < 0x3f00)
     {
-        _nameTables[(address & _mirroring) & 0xfff] = value;
+        _nameTables[(address & _mapper->GetMirroringMode()) & 0xfff] = value;
 
         _nameTableDirty = true;
     }
@@ -559,7 +542,7 @@ void Ppu::WriteVramByte( addr address, byte value )
     }
     else
     {
-        // wot
+        assert (false);
     }
     
     _vramAddr += (_ppuCtrl & 0x4) > 0 ? 32 : 1;

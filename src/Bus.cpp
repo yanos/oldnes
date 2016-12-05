@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 El Choletto. All rights reserved.
 //
 
+#include <cassert>
+
 #include "Bus.h"
 
 Bus::Bus( std::shared_ptr<Mapper> mapper,
@@ -24,89 +26,79 @@ Bus::~Bus()
         
 byte Bus::ReadByte( addr address )
 {
-    //if (address > 0xffff)
-    //{
-    //    Logger.Log( Logger.Level.Warning, "MemoryBus::ReadByte() : address is greater than $ffff" );
-    //}
-            
     if (address < 0x2000)
         return _ram[address & _ramMask];
-    else if (address >= 0x8000)
-        return _mapper->ReadByte(address);
-    else if (address >= 0x2000 && address < 0x4000)
+    else if (address < 0x4000)
         return _ppu->ReadByte (address);
-    else if (address >= 0x6000 && address < 0x8000)
-        return _sram[address - _sramOffset];
-    else if (address == 0x4016 || address == 0x4017)
-        return _input->ReadByte( address );
-    
-    //Logger.Log( Logger.Level.Warning, "MemoryBus::ReadByte(): Didn't know what to do with address $" + address.ToString("X"));
-    
-    return 0xca;
+    else if (address < 0x4020)
+    {
+        if (address == 0x4016 || address == 0x4017)
+            return _input->ReadByte( address );
+    }
+    else
+        return _mapper->ReadByte(address);
+            
+    assert (false);
 }
 
 word Bus::ReadWord( addr address )
 {
-    //if (address > 0xffff)
-    //{
-    //    Logger.Log( Logger.Level.Warning, "MemoryBus::ReadWord() : address is greater than $ffff" );
-    //}
-    
     if (address < 0x2000)
-        return _ram[address & _ramMask] | ((_ram[(address+1U) & _ramMask]) << 8);
-    else if (address >= 0x8000)
-        return _mapper->ReadWord( address );
-    else if (address >= 0x2000 && address < 0x4000)
+        return _ram[address & _ramMask] | ((_ram[(address & _ramMask) + 1]) << 8);
+    else if (address < 0x4000)
         return _ppu->ReadWord( address );
-    else if (address >= 0x6000 && address < 0x8000)
-        return _sram[address - _sramOffset] | ((_sram[address + 1U - _sramOffset]) << 8);
+    else
+        return _mapper->ReadWord( address );
+    //else if (address >= 0x6000 && address < 0x8000)
+    //    return _sram[address - _sramOffset] | ((_sram[address + 1U - _sramOffset]) << 8);
     
-    //Logger.Log( Logger.Level.Warning, "MemoryBus::ReadWord(): Didn't know what to do with address $" + address.ToString("X"));
-    
-    return 0xcaca;
+    assert (false);
 }
 
 void Bus::WriteByte( addr address, byte value )
 {
     if (address < 0x2000)
     {
-        _ram [address & _ramMask] = value;
+        _ram[address & _ramMask] = value;
         return;
     }
-    else if (address >= 0x8000)
-    {
-        _mapper->WriteByte( address, value );
-        return;
-    }
-    else if (address >= 0x2000 && address < 0x4000)
+    else if (address < 0x4000)
     {
         _ppu->WriteByte( address, value );
         return;
     }
-    else if (address >= 0x6000 && address < 0x8000)
+    else if (address < 0x4020)
     {
-        _sram[address - _sramOffset] = value;
-        return;
-    }
-    else if (address == 0x4016 || address == 0x4017)
-    {
-        _input->WriteByte( address, value );
-        return;
-    }
-    else if (address == 0x4014)
-    {
-        //addr baseAddr = value << 8;
-        const addr baseAddr = _ppu->GetOamAddr();
-
-        for (u16 i=0; i<256; ++i)
+        if (address == 0x4016 || address == 0x4017)
         {
-            _ppu->WriteOam( i, ReadByte( (0x100 * value) + i ) );
+            _input->WriteByte( address, value );
+            return;
         }
+        else if (address == 0x4014)
+        {
+            // TODO not accurate according to sprite test
+
+            //addr baseAddr = value << 8;
+            //const addr baseAddr = _ppu->GetOamAddr();
+
+            for (u16 i=0; i<256; ++i)
+            {
+                _ppu->WriteOam( i, ReadByte( (0x100 * value) + i ) );
+            }
         
-        // TODO: add 513 or 514 cycles
+            // TODO: add 513 or 514 cycles
+            return;
+        }
+
+        // TODO sound stuff
         return;
     }
-    
-    //Logger.Log( Logger.Level.Warning, "MemoryBus::WriteByte(): Didn't know what to do with address $" + address.ToString("X"));
+    else 
+    {
+        _mapper->WriteByte( address, value );
+        return;
+    }
+                
+    assert (false);
 }
 

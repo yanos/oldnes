@@ -28,8 +28,9 @@ static const u32 NesPalette[] =
     0xffF8D878, 0xffD8F878, 0xffB8F8B8, 0xffB8F8D8, 0xff00FCFC, 0xffF8D8F8, 0xff000000, 0xff000000
 };
 
-Renderer::Renderer( std::shared_ptr<Ppu> ppu )
+Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
 {
+    _mapper = mapper;
     _ppu = ppu;
 
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
@@ -221,11 +222,11 @@ void Renderer::DrawSprites( SpritePriority priority )
     SDL_FillRect( _spriteSurface, nullptr, 0 );
 
     SDL_Surface* srcPatternSurface = (ppuCtrl & 0x8) == 0
-            ? _leftPatternTableSurface
-            : _rightPatternTableSurface;
+        ? _leftPatternTableSurface
+        : _rightPatternTableSurface;
 
     // TODO deal with 8x16 sprites
-    bool tallSprite = ppuCtrl & 0x20;
+    bool tallSprite = (ppuCtrl & 0x20) != 0;
    
     SDL_Rect src = { 0, 0, 8, 8 };
     SDL_Rect dst = { 0, 0, 8, 8 };
@@ -305,7 +306,7 @@ void Renderer::BlitSprite( SDL_Surface* patternSurface,
 
 void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
 {
-    auto txtColor = _masterColors[60];
+    /*auto txtColor = _masterColors[60];
     
     const u8 buffSize = 64;
     char buffer[buffSize];
@@ -321,7 +322,7 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
     auto txtSurface = TTF_RenderText_Solid( _courrierFont, buffer, txtColor );
 
     SDL_BlitSurface( txtSurface, nullptr, _screenSurface, nullptr );
-    SDL_FreeSurface( txtSurface );
+    SDL_FreeSurface( txtSurface );*/
 }
 
 void Renderer::DrawPalettes( const u8* palettes )
@@ -361,7 +362,7 @@ void Renderer::DrawPalettes( const u8* palettes )
     SDL_BlitSurface( _objPaletteSurface, nullptr, _screenSurface, &_objPaletteRect );
 }
 
-void Renderer::DrawPatternTables( const u8* patternTables )
+void Renderer::DrawPatternTables()
 {
     //if (_ppu->IsPaletteDirty())
     {
@@ -378,8 +379,8 @@ void Renderer::DrawPatternTables( const u8* patternTables )
 
             // left perttern table
             patternLine = 
-                DecodePatternLine( patternTables[tileStart], 
-                                   patternTables[tileStart + 8] );
+                DecodePatternLine( _mapper->ReadChr( tileStart ),
+                                   _mapper->ReadChr( tileStart + 8 ) );
             pixelPtr = 
                 (u8*)_leftPatternTableSurface->pixels
                     + y * _leftPatternTableSurface->pitch
@@ -389,8 +390,8 @@ void Renderer::DrawPatternTables( const u8* patternTables )
 
             // right pattern table
             patternLine = 
-                DecodePatternLine( patternTables[0x1000 + tileStart], 
-                                   patternTables[0x1000 + tileStart + 8] );
+                DecodePatternLine( _mapper->ReadChr( 0x1000 + tileStart ),
+                                   _mapper->ReadChr( 0x1000 + tileStart + 8 ) );
             pixelPtr = 
                 (u8*)_rightPatternTableSurface->pixels
                     + y * _rightPatternTableSurface->pitch

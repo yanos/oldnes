@@ -8,17 +8,13 @@
 
 #include "Mapper0.h"
 
-Mapper0::Mapper0( std::shared_ptr<Rom> rom, std::shared_ptr<Ppu> ppu )
+Mapper0::Mapper0( std::shared_ptr<Rom> rom )
+    : Mapper( rom )
 {
-    _rom = rom;
-    _ppu = ppu;
-
-    if (_rom->PrgRomSize > 0x4000)
+    if (rom->PrgRomSize > 0x4000)
         _addrMask = 0x7fff;
     else
         _addrMask = 0x3fff;
-
-    _ppu->SetMirroring( _rom->Mirroring );
 }
 
 Mapper0::~Mapper0()
@@ -26,16 +22,26 @@ Mapper0::~Mapper0()
     
 }
 
+byte Mapper0::ReadChr( word addr )
+{
+    return _chrData[ addr ];
+}
+
+void Mapper0::WriteChr( word addr, byte value )
+{
+    _chrData[addr] = value;
+}
+
 byte Mapper0::ReadByte( addr address )
 {
-    return _rom.get()->PrgRomData[address & _addrMask];
-
+    return _prgData[address & _addrMask];
 }
 
 word Mapper0::ReadWord( addr address )
 {
-    byte lbyte = _rom.get()->PrgRomData[address & _addrMask];
-    byte hbyte = _rom.get()->PrgRomData[(address + 1) & _addrMask];
+    word effectiveAddr = address & _addrMask;
+    byte lbyte = _prgData[effectiveAddr];
+    byte hbyte = _prgData[effectiveAddr + 1];
     return lbyte | (hbyte << 8);
 }
 

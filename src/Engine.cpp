@@ -9,15 +9,19 @@
 #include <chrono>
 #include <thread>
 #include <numeric>
+#include <cmath>
+#include <cassert>
 
 #include "Engine.h"
 #include "Rom.h"
 #include "Bus.h"
 #include "Mapper.h"
+#include "Mappers/Mapper0.h"
+#include "Mappers/Mapper1.h"
 
 u32 globalTickStart = 0;
 
-u32 Step( u32 elapsed, void* param )
+u32 Step( u32 elapsed, void* /*param*/ )
 {
     // provoke an user event so that the main loop
     // call RenderFrames. This is done to prevent
@@ -41,22 +45,28 @@ u32 Step( u32 elapsed, void* param )
 Engine::Engine( string filename )
 {
     auto rom = Rom::Load( filename );
-    _ppu = std::shared_ptr<Ppu>( new Ppu() );
-    _renderer = std::shared_ptr<Renderer>(new Renderer( _ppu ));
-    auto mapper = std::shared_ptr<Mapper>( new Mapper( rom, _ppu ) );
+    _mapper = std::shared_ptr<Mapper>( MakeMapper( rom ) );
+    _ppu = std::shared_ptr<Ppu>( new Ppu( _mapper ) );
+    _renderer = std::shared_ptr<Renderer>(new Renderer( _ppu, _mapper ));
     _input = std::shared_ptr<Input>( new Input() );
-    auto bus = std::shared_ptr<Bus>( new Bus( mapper, _ppu, _input ) );
+    auto bus = std::shared_ptr<Bus>( new Bus( _mapper, _ppu, _input ) );
     _cpu = std::shared_ptr<Cpu>( new Cpu( bus ) );
     
     _cpuCycles = 0;
     _cpu->Reset();
 }
 
+Engine::~Engine()
+{
+    _fpsValues.clear();
+    _internalFpsValues.clear();
+}
+
 void Engine::Run()
 {
     bool keyTrigger = true;
     int framesToRender = 1;
-    SDL_AddTimer( 16.666666 * framesToRender, Step, nullptr );
+    SDL_AddTimer( std::round(16.66666 * framesToRender), Step, nullptr );
     
     SDL_Event evt;
     while (1)
@@ -146,8 +156,9 @@ void Engine::RenderFrames( u32 framesToRender )
 {
     u32 tickStart = SDL_GetTicks();
 
-    Cpu *cpu = _cpu.get();
-    Ppu *ppu = _ppu.get();
+    Cpu    *cpu    = _cpu.get();
+    Ppu    *ppu    = _ppu.get();
+    //Mapper *mapper = _mapper.get();
 
     bool vblankDone = false;
 
@@ -165,7 +176,9 @@ void Engine::RenderFrames( u32 framesToRender )
                 vblankDone = true;
                 
                 // TODO move this when sprite caching is implemented
-                _renderer->DrawPatternTables( ppu->GetPatternTables() );
+                //_renderer->DrawPatternTables( mapper->GetPatternTables() );
+                
+                _renderer->DrawPatternTables();
                 
                 _renderer->DrawFrame( ppu->GetFrameData(), ppu->GetPalettes() );
 
@@ -220,6 +233,30 @@ void Engine::RenderFrames( u32 framesToRender )
         _debugOutput.MinFps = min;
         _debugOutput.MaxFps = max;
     }
+}
+
+std::shared_ptr<Mapper> Engine::MakeMapper( std::shared_ptr<Rom> rom )
+{
+    switch (rom.get()->MapperId)
+    {
+        case 0:
+        {
+            return std::shared_ptr<Mapper>( new Mapper0( rom ) );
+            break;
+        }
+            
+        case 1:
+        {
+            return std::shared_ptr<Mapper1>( new Mapper1( rom ) );
+            break;
+        }
+            
+        default:
+            assert( false );
+            break;
+    }
+    
+    return nullptr;
 }
 
 

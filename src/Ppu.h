@@ -12,12 +12,13 @@
 #include <stdio.h>
 
 #include "Common.h"
+#include "Mapper.h"
 
 class Ppu
 {
     
 public:
-    Ppu();
+    Ppu( std::shared_ptr<Mapper> mapper );
     ~Ppu();
     
     byte ReadByte( addr );
@@ -47,7 +48,7 @@ public:
     const u8  GetPpuMask()                                  { return _ppuMask;                }
     const u8  GetPpuStatus()                                { return _ppuStatus;              }
     const u8* GetPalettes()                                 { return _palettes;               }
-    const u8* GetPatternTables()                            { return _paternTables;           }
+    //const u8* GetPatternTables()                            { return _paternTables;           }
     const u8* GetNameTables()                               { return _nameTables;             }
     const u8* GetOam()                                      { return _oamData;                }
     const u16 GetOamAddr()                                  { return _oamAddr;                }
@@ -60,9 +61,6 @@ public:
                                                             
     const u16  GetCurrentScanline()                         { return _currentScanline;        }
     const u32  GetCurrentFramePixel()                       { return _currentFramePixel;      }
-
-    void       SetMirroring( MirroringMode mirroring ) { _mirroring = mirroring; }
-
         
 private:
     
@@ -102,44 +100,44 @@ private:
     void WriteVramByte( addr, byte );
     byte ReadVramByte( addr );
     
-    static const u16     _patternTableSize = 0x1000;
-    static const u16     _nameTableSize = 0x400;
+    static const u16        _patternTableSize = 0x1000;
+    static const u16        _nameTableSize = 0x400;
     
-    MirroringMode        _mirroring;
+    std::shared_ptr<Mapper> _mapper;
     
-    u32                  _currentFramePixel = 261 * _pixelPerScanline;
-    u16                  _currentScanlinePixel = 0;
-    u16                  _currentScanline = 261;
-    u16                  _firstNonZeroSpriteX = 0xffff;
-    u16                  _firstNonZeroSpriteY = 0xffff;
+    u32                     _currentFramePixel = 261 * _pixelPerScanline;
+    u16                     _currentScanlinePixel = 0;
+    u16                     _currentScanline = 261;
+    u16                     _firstNonZeroSpriteX = 0xffff;
+    u16                     _firstNonZeroSpriteY = 0xffff;
 
-    byte                 _oamData[0x100];
-    addr                 _oamAddr = 0;
+    byte                    _oamData[0x100];
+    addr                    _oamAddr = 0;
                          
-    u8                   _ppuCtrl = 0;
-    u8                   _ppuMask = 0;
-    u8                   _ppuStatus = 0;
+    u8                      _ppuCtrl = 0;
+    u8                      _ppuMask = 0;
+    u8                      _ppuStatus = 0;
                          
-    u8                   _frameData[_screenBufferWidth * _screenBufferHeight]; // 2 extra rows to remove some ifs
+    u8                      _frameData[_screenBufferWidth * _screenBufferHeight]; // 2 extra rows to remove some ifs
 
-    u8                   _palettes[0x20];
-    u8                   _paternTables[_patternTableSize * 2];
-    u8                   _nameTables[_nameTableSize * 4];
+    u8                      _palettes[0x20];
+    //u8                    _paternTables[_patternTableSize * 2];
+    u8                      _nameTables[_nameTableSize * 4];
                          
-    u8                   _fineXScroll = 0;              // 3 bits
+    u8                      _fineXScroll = 0;              // 3 bits
 
-    TileBuffer           _tileBuffer;
+    TileBuffer              _tileBuffer;
 
-    addr                 _vramAddr = 0;                 // 15 bits
-    addr                 _tmpVramAddr = 0;              // 15 bits
-    byte                 _vramReadBuffer = 0;
-    bool                 _firstWrite = true;
+    addr                    _vramAddr = 0;                 // 15 bits
+    addr                    _tmpVramAddr = 0;              // 15 bits
+    byte                    _vramReadBuffer = 0;
+    bool                    _firstWrite = true;
     
-    bool                 _sprite0FlagDirty = true;
-    bool                 _spriteDirty = true;
-    bool                 _nameTableDirty = true;
-    bool                 _patternTableDirty = true;
-    bool                 _paletteDirty = true;
+    bool                    _sprite0FlagDirty = true;
+    bool                    _spriteDirty = true;
+    bool                    _nameTableDirty = true;
+    bool                    _patternTableDirty = true;
+    bool                    _paletteDirty = true;
     
 };
 

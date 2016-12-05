@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 El Choletto. All rights reserved.
 //
 
+#include <cassert>
+
 #include "Cpu.h"
 
 const u8 OpcodeSizes[]
@@ -104,22 +106,22 @@ void Cpu::AbsoluteStore( byte value )
 
 byte Cpu::AbsoluteReadX()
 {
-    return _bus->ReadByte( ( _bus->ReadWord( _regPC + 1 ) + _regX ) & 0xffff);
+    return _bus->ReadByte( _bus->ReadWord( _regPC + 1 ) + _regX );
 }
 
 void Cpu::AbsoluteStoreX( byte value )
 {
-    _bus->WriteByte( ( _bus->ReadWord( _regPC + 1 ) + _regX ) & 0xffff, value );
+    _bus->WriteByte( _bus->ReadWord( _regPC + 1 ) + _regX, value );
 }
 
 byte Cpu::AbsoluteReadY()
 {
-    return _bus->ReadByte( ( _bus->ReadWord( _regPC + 1 ) + _regY ) & 0xffff );
+    return _bus->ReadByte( _bus->ReadWord( _regPC + 1 ) + _regY );
 }
 
 void Cpu::AbsoluteStoreY( byte value )
 {
-    _bus->WriteByte( ( _bus->ReadWord( _regPC + 1 ) + _regY ) & 0xffff, value );
+    _bus->WriteByte( _bus->ReadWord( _regPC + 1 ) + _regY, value );
 }
 
 // Indirect
@@ -204,8 +206,6 @@ byte Cpu::PopByte()
 
 void Cpu::Reset()
 {
-    //Logger.Log( Logger.Level.Info, "Cpu Reset.");
-    
     // reset all flags
     SetFlags( _defaultFlags );
     
@@ -433,7 +433,6 @@ u8 Cpu::Step()
             _tmpByte = AbsoluteReadX();
             _flagC = (_tmpByte & 0x80) >> 7;
             _tmpByte <<= 1;
-            //_tmpByte &= 0xff;
             SetNZ( _tmpByte );
             AbsoluteStoreX( _tmpByte );
             break;
@@ -618,36 +617,36 @@ u8 Cpu::Step()
             break;
             
         case 0xc6:  // DEC Zero Page
-            _tmpByte = (ZeroPageRead() - 1);// & 0xff;
+            _tmpByte = (ZeroPageRead() - 1);
             ZeroPageStore( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xd6:  // DEC Zero Page, X
-            _tmpByte = (ZeroPageReadX() - 1);// & 0xff;
+            _tmpByte = (ZeroPageReadX() - 1);
             ZeroPageStoreX( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xce:  // DEC Absolute
-            _tmpByte = (AbsoluteRead() - 1);// & 0xff;
+            _tmpByte = (AbsoluteRead() - 1);
             AbsoluteStore( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xde:  // DEC Absolute X
-            _tmpByte = (AbsoluteReadX() - 1);// & 0xff;
+            _tmpByte = (AbsoluteReadX() - 1);
             AbsoluteStoreX( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xca:  // DEX
-            _regX = (_regX - 1 );// & 0xff;
+            _regX = (_regX - 1 );
             SetNZ( _regX );
             break;
             
         case 0x88:  // DEY
-            _regY = (_regY - 1 );// & 0xff;
+            _regY = (_regY - 1 );
             SetNZ( _regY );
             break;
             
@@ -692,36 +691,36 @@ u8 Cpu::Step()
             break;
             
         case 0xe6:  // INC Zero Page
-            _tmpByte = (ZeroPageRead() + 1);// & 0xff;
+            _tmpByte = (ZeroPageRead() + 1);
             ZeroPageStore( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xf6:  // INC Zero Page, X
-            _tmpByte = (ZeroPageReadX() + 1);// & 0xff;
+            _tmpByte = (ZeroPageReadX() + 1);
             ZeroPageStoreX( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xee:  // INC Absolute
-            _tmpByte = (AbsoluteRead() + 1);// & 0xff;
+            _tmpByte = (AbsoluteRead() + 1);
             AbsoluteStore( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xfe:  // INC Absolute, X
-            _tmpByte = (AbsoluteReadX() + 1);// & 0xff;
+            _tmpByte = (AbsoluteReadX() + 1);
             AbsoluteStoreX( _tmpByte );
             SetNZ( _tmpByte );
             break;
             
         case 0xe8:  // INX
-            _regX = (_regX + 1);// & 0xff;
+            _regX = (_regX + 1);
             SetNZ( _regX );
             break;
             
         case 0xc8:  // INY
-            _regY = (_regY + 1);// & 0xff;
+            _regY = (_regY + 1);
             SetNZ( _regY );
             break;
             
@@ -1115,16 +1114,16 @@ u8 Cpu::Step()
             break;
             
         default:
-            Reset();
+            assert( false );
             return 0;
     }
     
     if (OpcodeSizes[_opcode] == 0)
     {
-        //Logger.Log( Logger.Level.Error, "Opcode 0x" + _opcode.ToString("X") + " size is 0" );
+        assert( false );
     }
     
-    _regPC = (_regPC + OpcodeSizes[_opcode]) & 0xffffU;
+    _regPC = (_regPC + OpcodeSizes[_opcode]);
     return OpcodeCycles[_opcode];;
 }
 

@@ -32,13 +32,15 @@ public:
 
 private:
     u8 	                    _ram[0x800];
+    
+    // TODO move sram to mapper
     u8                      _sram[0x2000];
     std::shared_ptr<Ppu>    _ppu;
     std::shared_ptr<Mapper> _mapper;
     std::shared_ptr<Input>  _input;
     
-    const u16 _sramOffset = 0x6000;
-    const u16 _ramMask = 0x7ff;        // ram is 2kb mirrored 4 times
+    const u16               _sramOffset = 0x6000;
+    const u16               _ramMask = 0x7ff;        // ram is 2kb mirrored 4 times
     
 };
 

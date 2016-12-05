@@ -16,14 +16,14 @@ std::shared_ptr<Rom> Rom::Load( string filename )
     
     std::ifstream is( filename, std::ifstream::binary );
     if (!is)
-        return NULL;
+        return nullptr;
     
     std::unique_ptr<u8[]> header( new u8[_headerSize] );
     is.read( (char*)header.get(), _headerSize );
         
     if (header[0] != 0x4e || header[1] != 0x45 || header[2] != 0x53 || header[3] != 0x1a)
     {
-        return NULL;
+        return nullptr;
     }
         
     u32 prgRomSize = header[4] * 0x4000U;
@@ -35,7 +35,7 @@ std::shared_ptr<Rom> Rom::Load( string filename )
     bool hasTrainer = (flag6 & 0x4) > 0;
     u8 lMapper      = flag6 >> 4;
     
-    MirroringMode mirroring;
+    MirroringMode mirroring = Horizontal;
     if ((flag6 & 0x8) > 0)
         mirroring = FourScreen;
     else if((flag6 & 0x1) == 0 && (flag6 & 0x8) == 0)
@@ -91,31 +91,31 @@ std::shared_ptr<Rom> Rom::Load( string filename )
                  std::move( chrRomData ) ) );
 }
 
-Rom::Rom( u32 prgRomSize,
-          u32 prgRamSize,
-          u32 chrRomSize,
-          bool hasSRAM,
-          bool hasTrainer,
-          bool vsUnisystem,
-          bool playChoice,
-          bool nes2Format,
-          u8 mapperId,
-          MirroringMode mirroring,
+Rom::Rom( u32                   prgRomSize,
+          u32                   prgRamSize,
+          u32                   chrRomSize,
+          bool                  hasSRAM,
+          bool                  hasTrainer,
+          bool                  vsUnisystem,
+          bool                  playChoice,
+          bool                  nes2Format,
+          u8                    mapperId,
+          MirroringMode         mirroring,
           std::unique_ptr<u8[]> prgRomData,
           std::unique_ptr<u8[]> chrRomData)
 
-    :   PrgRomSize( prgRomSize ),
-        PrgRamSize( prgRamSize ),
-        ChrRomSize( chrRomSize ),
-        HasSRAM( hasSRAM ),
-        HasTrainer( hasTrainer ),
-        VSUnisystem( vsUnisystem ),
-        PlayChoice( playChoice ),
-        Nes2Format( nes2Format ),
-        MapperId( mapperId ),
-        Mirroring( mirroring ),
-        PrgRomData( std::move( prgRomData ) ),
-        ChrRomData( std::move( chrRomData ) )
+    :   PrgRomSize  ( prgRomSize              ),
+        PrgRamSize  ( prgRamSize              ),
+        ChrRomSize  ( chrRomSize              ),
+        HasSRAM     ( hasSRAM                 ),
+        HasTrainer  ( hasTrainer              ),
+        VSUnisystem ( vsUnisystem             ),
+        PlayChoice  ( playChoice              ),
+        Nes2Format  ( nes2Format              ),
+        MapperId    ( mapperId                ),
+        Mirroring   ( mirroring               ),
+        PrgRomData  ( std::move( prgRomData ) ),
+        ChrRomData  ( std::move( chrRomData ) )
 {
 
 }

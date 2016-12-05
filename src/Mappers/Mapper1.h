@@ -14,26 +14,40 @@
 
 #include "../DataTypes.h"
 #include "../Rom.h"
-#include "../Ppu.h"
+#include "../Mapper.h"
 
-class Mapper1
+class Mapper1 : public Mapper
 {
 
 public:
     
-    Mapper1() {}
-    Mapper1( std::shared_ptr<Rom>, std::shared_ptr<Ppu> ppu );
+    Mapper1( std::shared_ptr<Rom> rom );
     ~Mapper1();
     
     byte ReadByte( addr );
     word ReadWord( addr );
     void WriteByte( addr, byte );
     
+    byte ReadChr( word );
+    void WriteChr( word, byte );
+    
 private:
-    std::shared_ptr<Rom> _rom;
     
-    u16 _addrMask;
+    enum PrgBankSwitchingMode { Switch32k, SwitchLow16k, SwitchHigh16k };
+    enum ChrBankSwitchingMode { Switch8k, Switch4k };
+
+    PrgBankSwitchingMode _prgBankSwitchMode = SwitchLow16k;
+    ChrBankSwitchingMode _chrBankSwitchMode;
+
+    u8*                  _prgBankAPtr;
+    u8*                  _prgBankBPtr;
     
+    u8*                  _chrBankAPtr;
+    u8*                  _chrBankBPtr;
+
+    u8                   _writeCount = 0;
+    u8                   _ctrlReg = 0;
+    u8                   _loadReg = 0;
 };
 
 #endif /* defined(__OldNES__Mapper1__) */

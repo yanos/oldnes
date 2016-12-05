@@ -25,13 +25,13 @@ public:
     enum WinSize { NormalWinSize = 0, DebugWinSize, NormalScanlineWinSize, DebugScanlineWinSize, MaxWinSize };
     enum SpritePriority { FrontPriority, BackPriority };
 
-    Renderer( std::shared_ptr<Ppu> );
+    Renderer( std::shared_ptr<Ppu>, std::shared_ptr<Mapper> );
     ~Renderer();
 
     void DrawFrame( const u8* frameData, const u8* palettes );
 
     void DrawPalettes( const u8* palettes );
-    void DrawPatternTables( const u8* patternTables );
+    void DrawPatternTables();
     void DrawNameTables( const u8* nameTables, const u8 ppuCtrl );
     void DrawSprites( SpritePriority priority );
     void DrawDebugOutput( const DebugOutput &debugOutput );
@@ -47,13 +47,14 @@ private:
     void BlitSprite( SDL_Surface*, SDL_Rect*, SDL_Rect*, Flip, u8 );
     u8* DecodePatternLine( u8, u8 );
 
-    std::shared_ptr<Ppu> _ppu;
+    std::shared_ptr<Ppu>    _ppu;
+    std::shared_ptr<Mapper> _mapper;
 
-    SDL_Window*          _mainWindow = nullptr;
+    SDL_Window*             _mainWindow = nullptr;
     
-    TTF_Font*            _courrierFont = nullptr;
+    TTF_Font*               _courrierFont = nullptr;
     
-    SDL_Rect             _mainScreenRect;
+    SDL_Rect                _mainScreenRect;
     SDL_Rect             _bgPaletteRect;
     SDL_Rect             _objPaletteRect;
     SDL_Rect             _leftPatternTableRect;

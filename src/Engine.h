@@ -29,9 +29,12 @@ public:
     void RenderFrames( u32 nbFrames );
 
 private:
+    std::shared_ptr<Mapper> MakeMapper( std::shared_ptr<Rom> rom );
+    
     std::shared_ptr<Cpu>        _cpu;
     std::shared_ptr<Ppu>        _ppu;
     std::shared_ptr<Input>      _input;
+    std::shared_ptr<Mapper>     _mapper;
     std::shared_ptr<Renderer>   _renderer;
     
     std::list<float>            _fpsValues;

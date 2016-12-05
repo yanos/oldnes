@@ -14,22 +14,35 @@
 
 #include "Common.h"
 #include "Rom.h"
-#include "Ppu.h"
 
 class Mapper
 {
     
 public:
-    Mapper( std::shared_ptr<Rom>, std::shared_ptr<Ppu> );
+    Mapper( std::shared_ptr<Rom> );
     ~Mapper();
     
-    byte ReadByte( addr );
-    word ReadWord( addr );
-    void WriteByte( addr, byte );
+    virtual byte ReadByte( addr ) = 0;
+    virtual word ReadWord( addr ) = 0;
+    virtual void WriteByte( addr, byte ) = 0;
     
-    std::function<byte(addr)>       _readByte;
-    std::function<word(addr)>       _readWord;
-    std::function<void(addr, byte)> _writeByte;
+    virtual byte ReadChr( word ) = 0;
+    virtual void WriteChr( word, byte ) = 0;
+    
+    const MirroringMode GetMirroringMode() { return _mirroring; }
+    
+//    std::function<byte(addr)>       _readByte;
+//    std::function<word(addr)>       _readWord;
+//    std::function<void(addr, byte)> _writeByte;
+    
+protected:
+    MirroringMode        _mirroring;
+    
+    u32                  _prgDataSize;
+    u32                  _chrDataSize;
+
+    byte*                _prgData = nullptr;
+    byte*                _chrData = nullptr;
 };
 
 #endif /* defined(__OldNES__Mapper__) */

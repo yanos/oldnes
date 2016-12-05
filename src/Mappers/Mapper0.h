@@ -13,27 +13,27 @@
 #include <memory>
 
 #include "../DataTypes.h"
+#include "../Mapper.h"
 #include "../Rom.h"
-#include "../Ppu.h"
 
-class Mapper0
+
+class Mapper0 : public Mapper
 {
 
 public:
     
-    Mapper0() {}
-    Mapper0( std::shared_ptr<Rom>, std::shared_ptr<Ppu> ppu );
+    Mapper0( std::shared_ptr<Rom> rom );
     ~Mapper0();
     
     byte ReadByte( addr );
     word ReadWord( addr );
     void WriteByte( addr, byte );
     
+    byte ReadChr( word );
+    void WriteChr( word, byte );
+    
 private:
-    std::shared_ptr<Rom> _rom;
-    std::shared_ptr<Ppu> _ppu;
-
-    u16 _addrMask;
+    u16     _addrMask;
     
 };
 
