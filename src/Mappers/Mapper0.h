@@ -22,7 +22,7 @@ class Mapper0 : public Mapper
 
 public:
     
-    Mapper0( std::shared_ptr<Rom> rom );
+    Mapper0( std::unique_ptr<Rom> );
     ~Mapper0();
     
     byte ReadByte( addr );

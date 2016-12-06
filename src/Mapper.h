@@ -19,7 +19,7 @@ class Mapper
 {
     
 public:
-    Mapper( std::shared_ptr<Rom> );
+    Mapper( Rom* );
     ~Mapper();
     
     virtual byte ReadByte( addr ) = 0;

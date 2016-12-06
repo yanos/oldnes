@@ -9,8 +9,8 @@
 #include <cassert>
 #include "Mapper1.h"
 
-Mapper1::Mapper1( std::shared_ptr<Rom> rom )
-    : Mapper( rom )
+Mapper1::Mapper1( std::unique_ptr<Rom> rom )
+    : Mapper( rom.get() )
 {
     _prgBankAPtr = &_prgData[0];
     _prgBankBPtr = &_prgData[_prgDataSize - 0x4000];

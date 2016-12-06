@@ -10,7 +10,7 @@
 
 #include "Rom.h"
 
-std::shared_ptr<Rom> Rom::Load( string filename )
+std::unique_ptr<Rom> Rom::Load( string filename )
 {
     // TODO: iNES 2.0 support
     
@@ -76,7 +76,7 @@ std::shared_ptr<Rom> Rom::Load( string filename )
         is.read( (char*)chrRomData.get(), chrRomSize );
     }
     
-    return std::shared_ptr<Rom>(
+    return std::unique_ptr<Rom>(
         new Rom( prgRomSize,
                  prgRamSize,
                  chrRomSize,

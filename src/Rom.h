@@ -22,7 +22,7 @@ public:
     Rom( u32, u32, u32, bool, bool, bool, bool, bool, u8, MirroringMode, std::unique_ptr<u8[]>, std::unique_ptr<u8[]> );
     ~Rom() {}
     
-    static std::shared_ptr<Rom> Load( string );
+    static std::unique_ptr<Rom> Load( string );
     
     const u32           PrgRomSize;
     const u32           PrgRamSize;

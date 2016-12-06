@@ -18,7 +18,7 @@ class Cpu
 {
     
 public:
-    Cpu( std::shared_ptr<Bus> );
+    Cpu( std::unique_ptr<Bus> );
     ~Cpu();
     
     u8 Step();
@@ -63,7 +63,7 @@ private:
     byte IndirectReadY();
     void IndirectStoreY( byte );
     
-    std::shared_ptr<Bus> _bus;
+    std::unique_ptr<Bus> _bus;
     
     const byte           _defaultFlags = 4;
     

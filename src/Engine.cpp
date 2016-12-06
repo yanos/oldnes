@@ -44,13 +44,12 @@ u32 Step( u32 elapsed, void* /*param*/ )
 
 Engine::Engine( string filename )
 {
-    auto rom = Rom::Load( filename );
-    _mapper = std::shared_ptr<Mapper>( MakeMapper( rom ) );
+    _mapper = std::shared_ptr<Mapper>( MakeMapper( Rom::Load( filename ) ) );
     _ppu = std::shared_ptr<Ppu>( new Ppu( _mapper ) );
-    _renderer = std::shared_ptr<Renderer>(new Renderer( _ppu, _mapper ));
+    _renderer = std::unique_ptr<Renderer>( new Renderer( _ppu, _mapper ) );
     _input = std::shared_ptr<Input>( new Input() );
-    auto bus = std::shared_ptr<Bus>( new Bus( _mapper, _ppu, _input ) );
-    _cpu = std::shared_ptr<Cpu>( new Cpu( bus ) );
+    _cpu = std::unique_ptr<Cpu>( 
+        new Cpu( std::unique_ptr<Bus>( new Bus( _mapper, _ppu, _input ) ) ) );
     
     _cpuCycles = 0;
     _cpu->Reset();
@@ -235,19 +234,19 @@ void Engine::RenderFrames( u32 framesToRender )
     }
 }
 
-std::shared_ptr<Mapper> Engine::MakeMapper( std::shared_ptr<Rom> rom )
+std::shared_ptr<Mapper> Engine::MakeMapper( std::unique_ptr<Rom> rom )
 {
-    switch (rom.get()->MapperId)
+    switch (rom->MapperId)
     {
         case 0:
         {
-            return std::shared_ptr<Mapper>( new Mapper0( rom ) );
+            return std::shared_ptr<Mapper>( new Mapper0( std::move( rom ) ) );
             break;
         }
             
         case 1:
         {
-            return std::shared_ptr<Mapper1>( new Mapper1( rom ) );
+            return std::shared_ptr<Mapper1>( new Mapper1( std::move( rom ) ) );
             break;
         }
             

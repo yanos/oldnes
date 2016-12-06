@@ -8,8 +8,8 @@
 
 #include "Mapper0.h"
 
-Mapper0::Mapper0( std::shared_ptr<Rom> rom )
-    : Mapper( rom )
+Mapper0::Mapper0( std::unique_ptr<Rom> rom )
+    : Mapper( rom.get() )
 {
     if (rom->PrgRomSize > 0x4000)
         _addrMask = 0x7fff;

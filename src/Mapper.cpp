@@ -10,21 +10,21 @@
 #include "Mappers/Mapper0.h"
 #include "Mappers/Mapper1.h"
 
-Mapper::Mapper( std::shared_ptr<Rom> rom )
+Mapper::Mapper( Rom* pRom )
 {
-    _mirroring = rom->Mirroring;
+    _mirroring = pRom->Mirroring;
     
     // copy prg data
-    _prgDataSize = rom->PrgRomSize;
+    _prgDataSize = pRom->PrgRomSize;
     _prgData = new byte[_prgDataSize];
-    std::memcpy( _prgData, rom->PrgRomData.get(), _prgDataSize );
+    std::memcpy( _prgData, pRom->PrgRomData.get(), _prgDataSize );
     
     // copy chr data
-    _chrDataSize = rom->ChrRomSize;
+    _chrDataSize = pRom->ChrRomSize;
     if (_chrDataSize > 0)
     {
         _chrData = new byte[_chrDataSize];
-        std::memcpy( _chrData, rom->ChrRomData.get(), _chrDataSize );
+        std::memcpy( _chrData, pRom->ChrRomData.get(), _chrDataSize );
     }
     else
     {

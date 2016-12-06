@@ -52,9 +52,9 @@ const u8 OpcodeCycles[]
     2,  5,  0,  0,  0,  4,  6,  0,  2,  4,  0,  0,  0,  4,  7,  0  // f
 };
 
-Cpu::Cpu( std::shared_ptr<Bus> bus )
+Cpu::Cpu( std::unique_ptr<Bus> bus )
 {
-    _bus = bus;
+    _bus = std::move( bus );
 }
 
 Cpu::~Cpu()
