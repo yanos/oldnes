@@ -39,6 +39,10 @@ private:
     PrgBankSwitchingMode _prgBankSwitchMode = SwitchLow16k;
     ChrBankSwitchingMode _chrBankSwitchMode;
 
+    bool                 _prgRamEnabled;
+
+    byte                 _prgRam[0x2000];
+
     u8*                  _prgBankAPtr;
     u8*                  _prgBankBPtr;
     

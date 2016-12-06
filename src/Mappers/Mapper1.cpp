@@ -44,7 +44,10 @@ void Mapper1::WriteChr( word addr, byte value )
 
 byte Mapper1::ReadByte( addr address )
 {
-    assert( address >= 0x8000 );
+    if (address < 0x8000)
+    {
+        return _prgRam[address - 0x6000];
+    }
 
     auto ptr = address < 0xc000
         ? _prgBankAPtr
@@ -66,9 +69,11 @@ word Mapper1::ReadWord( word address )
     return lbyte | (hbyte << 8);
 }
 
-void Mapper1::WriteByte( word addr, byte value )
+void Mapper1::WriteByte( word address, byte value )
 {
-    assert( addr >= 0x8000 );
+    {
+        _prgRam[address - 0x6000] = value;
+    }
 
     if (value & 0x80)
     {
@@ -83,11 +88,11 @@ void Mapper1::WriteByte( word addr, byte value )
     }
     else
     {
-        _loadReg |= (value & 1) << _writeCount;
+        _loadReg = (((value & 1) << 4) | _loadReg >> 1);
 
         if (++_writeCount == 5)
         {
-            if (addr < 0xa000)                          // ctrl reg
+            if (address < 0xa000)                          // ctrl reg
             {
                 // mirroring mode
                 switch (_loadReg & 0x3)
@@ -127,7 +132,7 @@ void Mapper1::WriteByte( word addr, byte value )
                     : Switch4k;
 
             }
-            else if (addr < 0xc000)                     // chr bank 0
+            else if (address < 0xc000)                     // chr bank 0
             {
                 switch (_chrBankSwitchMode)
                 {
@@ -141,7 +146,7 @@ void Mapper1::WriteByte( word addr, byte value )
                         break;
                 }
             }
-            else if (addr < 0xe000)                     // chr bank 1
+            else if (address < 0xe000)                     // chr bank 1
             {
                 switch (_chrBankSwitchMode)
                 {
@@ -153,15 +158,15 @@ void Mapper1::WriteByte( word addr, byte value )
                         break;
                 }
             }
-            else                                        // prg bank
+            else                                          // prg bank
             {
-                assert( (_loadReg & 0x10) == 0 );
-                
+                _prgRamEnabled = _loadReg & 0x10;
+
                 switch (_prgBankSwitchMode)
                 {
                     case Switch32k:
                     {
-                        auto offset = (_loadReg >> 1) * 0x8000;
+                        auto offset = ((_loadReg & 0xf) >> 1) * 0x8000;
                         _prgBankAPtr = &_prgData[offset];
                         _prgBankBPtr = _prgBankAPtr + 0x4000;
 

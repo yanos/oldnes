@@ -44,12 +44,20 @@ u32 Step( u32 elapsed, void* /*param*/ )
 
 Engine::Engine( string filename )
 {
-    _mapper = std::shared_ptr<Mapper>( MakeMapper( Rom::Load( filename ) ) );
-    _ppu = std::shared_ptr<Ppu>( new Ppu( _mapper ) );
-    _renderer = std::unique_ptr<Renderer>( new Renderer( _ppu, _mapper ) );
+    _mapper = std::shared_ptr<Mapper>( 
+        MakeMapper( Rom::Load( filename ) ) );
+
+    _ppu = std::shared_ptr<Ppu>( 
+        new Ppu( _mapper ) );
+
+    _renderer = std::unique_ptr<Renderer>( 
+        new Renderer( _ppu, _mapper ) );
+
     _input = std::shared_ptr<Input>( new Input() );
+    
     _cpu = std::unique_ptr<Cpu>( 
-        new Cpu( std::unique_ptr<Bus>( new Bus( _mapper, _ppu, _input ) ) ) );
+        new Cpu( std::unique_ptr<Bus>( 
+            new Bus( _mapper, _ppu, _input ) ) ) );
     
     _cpuCycles = 0;
     _cpu->Reset();
