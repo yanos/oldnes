@@ -1,0 +1,9 @@
+
+
+MMC1
+bionic: invalid opcode
+ninja: black screen
+snake: runs near perfectly
+willow: runs near perfectly
+zelda: sprites and some NT attrib problem
+megaman 2: small sprites/NT problems

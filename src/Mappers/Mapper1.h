@@ -33,13 +33,13 @@ public:
     
 private:
     
-    enum PrgBankSwitchingMode { Switch32k, SwitchLow16k, SwitchHigh16k };
-    enum ChrBankSwitchingMode { Switch8k, Switch4k };
+    enum Regs { Ctrl, CHR0, CHR1, PRG, RegMax };
 
-    PrgBankSwitchingMode _prgBankSwitchMode = SwitchLow16k;
-    ChrBankSwitchingMode _chrBankSwitchMode;
+    void Apply();
 
     bool                 _prgRamEnabled;
+
+    byte                 _regs[RegMax];
 
     byte                 _prgRam[0x2000];
 
@@ -50,8 +50,8 @@ private:
     u8*                  _chrBankBPtr;
 
     u8                   _writeCount = 0;
-    u8                   _ctrlReg = 0;
-    u8                   _loadReg = 0;
+    u8                   _shiftReg = 0;
+    
 };
 
 #endif /* defined(__OldNES__Mapper1__) */
