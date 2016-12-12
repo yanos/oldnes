@@ -1,7 +1,7 @@
 
 
 MMC1
-bionic: invalid opcode
+bionic: runs with small sprite problems
 ninja: black screen
 snake: runs near perfectly
 willow: runs near perfectly

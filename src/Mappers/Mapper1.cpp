@@ -13,6 +13,9 @@ Mapper1::Mapper1( std::unique_ptr<Rom> rom )
     : Mapper( rom.get() )
 {
     std::memset( _regs, 0, sizeof(_regs) );
+
+    _regs[Ctrl] |= 0xc; 
+
     Apply();
 }
 
@@ -24,8 +27,8 @@ Mapper1::~Mapper1()
 byte Mapper1::ReadChr( word address )
 {
     auto ptr = address < 0x1000
-        ? _chrBankAPtr
-        : _chrBankBPtr;
+        ? _chrLowBankPtr
+        : _chrHighBankPtr;
 
     return *(ptr + (address & 0xfff));
 }
@@ -33,23 +36,23 @@ byte Mapper1::ReadChr( word address )
 void Mapper1::WriteChr( word address, byte value )
 {
     auto ptr = address < 0x1000
-        ? _chrBankAPtr
-        : _chrBankBPtr;
+        ? _chrLowBankPtr
+        : _chrHighBankPtr;
 
     *(ptr + (address & 0xfff)) = value;
 }
 
 byte Mapper1::ReadByte( addr address )
 {
-    // TODO: what to do on prgram reads when its disabled
+    // TODO: what to do on prgram reads when it's disabled
     if (address < 0x8000)
     {
         return _prgRam[address - 0x6000];
     }
 
-    auto ptr = address < 0xc000
-        ? _prgBankAPtr
-        : _prgBankBPtr;
+    auto ptr = address < 0xC000
+        ? _prgLowBankPtr
+        : _prgHighBankPtr;
 
     return *(ptr + (address & 0x3fff));
 }
@@ -64,8 +67,8 @@ word Mapper1::ReadWord( word address )
     }
 
     auto ptr = address < 0xc000
-        ? _prgBankAPtr
-        : _prgBankBPtr;
+        ? _prgLowBankPtr
+        : _prgHighBankPtr;
 
     byte lbyte = *(ptr + (address & 0x3fff));
     byte hbyte = *(ptr + ((address + 1) & 0x3fff));
@@ -74,7 +77,7 @@ word Mapper1::ReadWord( word address )
 
 void Mapper1::WriteByte( word address, byte value )
 {
-    if (address < 0x8000 && _prgRamEnabled)
+    if (address < 0x8000)
     {
         _prgRam[address - 0x6000] = value;
         return;
@@ -83,24 +86,26 @@ void Mapper1::WriteByte( word address, byte value )
     if (value & 0x80)
     {
         _writeCount = 0;
-        _shiftReg = 0;
+        _loadReg = 0;
 
-        _prgBankBPtr = &_prgData[_prgDataSize - 0x4000];
+        _regs[Ctrl] |= 0xc; 
+
+        Apply();
     }
     else
     {
         // add new bit
-        _shiftReg = (((value & 1) << 4) | _shiftReg >> 1);
+        _loadReg = (((value & 1) << 4) | _loadReg >> 1);
 
         if (++_writeCount == 5)
         {
             // store result in the correct register based on last address
-            _regs[(address >> 13) & 0b11] = _shiftReg;
+            _regs[(address >> 13) & 0b11] = _loadReg;
             
             Apply();
 
             _writeCount = 0;
-            _shiftReg = 0;
+            _loadReg = 0;
         }
     }
 }
@@ -111,43 +116,43 @@ void Mapper1::Apply()
     if ((_regs[Ctrl] & 0b1000) == 0)
     {
         // 32kb switching
-        auto offset = ((_regs[PRG] & 0xf) >> 1) * 0x8000;
+        u32 offset = ((_regs[PRG] & 0xf) >> 1) * 0x8000;
 
         assert (offset < _prgDataSize);
 
-        _prgBankAPtr = &_prgData[offset];
-        _prgBankBPtr = _prgBankAPtr + 0x4000;
+        _prgLowBankPtr = &_prgData[offset];
+        _prgHighBankPtr = _prgLowBankPtr + 0x4000;
     }
     else
     {
-        auto offset = (_regs[PRG] & 0xf) * 0x4000;
+        u32 offset = (_regs[PRG] & 0xf) * 0x4000;
 
         assert (offset < _prgDataSize);
 
         if (_regs[Ctrl] & 0b100)
         {
             // low 16kb switching
-            _prgBankAPtr = &_prgData[offset];
-            _prgBankBPtr = &_prgData[_prgDataSize - 0x4000];
+            _prgLowBankPtr = &_prgData[offset];
+            _prgHighBankPtr = &_prgData[_prgDataSize - 0x4000];
         }
         else
         {
-            // low 16kb switching
-            _prgBankAPtr = &_prgData[0];
-            _prgBankBPtr = &_prgData[offset];
+            // high 16kb switching
+            _prgLowBankPtr = &_prgData[0];
+            _prgHighBankPtr = &_prgData[offset];
         }
     }
 
     // Chr switching
     if (_regs[Ctrl] & 0b10000)
     {
-        _chrBankAPtr = &_chrData[_regs[CHR0] * 0x1000];
-        _chrBankBPtr = &_chrData[_regs[CHR1] * 0x1000];
+        _chrLowBankPtr = &_chrData[_regs[CHR0] * 0x1000];
+        _chrHighBankPtr = &_chrData[_regs[CHR1] * 0x1000];
     }
     else
     {
-        _chrBankAPtr = &_chrData[(_regs[CHR0] & 0xe) * 0x2000];
-        _chrBankBPtr = _chrBankAPtr + 0x1000;
+        _chrLowBankPtr = &_chrData[(_regs[CHR0] & 0xe) * 0x2000];
+        _chrHighBankPtr = _chrLowBankPtr + 0x1000;
     }
 
     // mirroring 
@@ -155,11 +160,11 @@ void Mapper1::Apply()
     {
         case 0:
             _mirroring = OneScreen;
-            _chrBankBPtr = _chrBankAPtr;
+            _chrHighBankPtr = _chrLowBankPtr;
             break;
         case 1:
             _mirroring = OneScreen;
-            _chrBankAPtr = _chrBankBPtr;
+            _chrLowBankPtr = _chrHighBankPtr;
             break;
         case 2:
             _mirroring = Vertical;

@@ -43,14 +43,14 @@ private:
 
     byte                 _prgRam[0x2000];
 
-    u8*                  _prgBankAPtr;
-    u8*                  _prgBankBPtr;
+    u8*                  _prgLowBankPtr;
+    u8*                  _prgHighBankPtr;
     
-    u8*                  _chrBankAPtr;
-    u8*                  _chrBankBPtr;
+    u8*                  _chrLowBankPtr;
+    u8*                  _chrHighBankPtr;
 
     u8                   _writeCount = 0;
-    u8                   _shiftReg = 0;
+    u8                   _loadReg = 0;
     
 };
 
