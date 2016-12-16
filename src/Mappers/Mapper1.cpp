@@ -59,19 +59,24 @@ byte Mapper1::ReadByte( addr address )
 
 word Mapper1::ReadWord( word address )
 {
+    byte lbyte = 0;
+    byte hbyte = 0;
+
     if (address < 0x8000)
     {
-        byte lbyte = _prgRam[address - 0x6000];
-        byte hbyte = _prgRam[address - 0x6000 + 1];
-        return lbyte | (hbyte << 8);
+        lbyte = _prgRam[address - 0x6000];
+        hbyte = _prgRam[address - 0x6000 + 1];
+    }
+    else
+    {
+        auto ptr = address < 0xc000
+            ? _prgLowBankPtr
+            : _prgHighBankPtr;
+
+        lbyte = *(ptr + (address & 0x3fff));
+        hbyte = *(ptr + ((address + 1) & 0x3fff));
     }
 
-    auto ptr = address < 0xc000
-        ? _prgLowBankPtr
-        : _prgHighBankPtr;
-
-    byte lbyte = *(ptr + (address & 0x3fff));
-    byte hbyte = *(ptr + ((address + 1) & 0x3fff));
     return lbyte | (hbyte << 8);
 }
 
@@ -151,7 +156,7 @@ void Mapper1::Apply()
     }
     else
     {
-        _chrLowBankPtr = &_chrData[(_regs[CHR0] & 0xe) * 0x2000];
+        _chrLowBankPtr = &_chrData[(_regs[CHR0] >> 1) * 0x2000];
         _chrHighBankPtr = _chrLowBankPtr + 0x1000;
     }
 

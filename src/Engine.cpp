@@ -19,29 +19,6 @@
 #include "Mappers/Mapper0.h"
 #include "Mappers/Mapper1.h"
 
-u32 globalTickStart = 0;
-
-u32 Step( u32 elapsed, void* /*param*/ )
-{
-    // provoke an user event so that the main loop
-    // call RenderFrames. This is done to prevent
-    // multithreading problem with sdl
-    SDL_Event event;
-    SDL_UserEvent userevent;
-    
-    userevent.type = SDL_USEREVENT;
-    userevent.code = 0;
-    userevent.data1 = NULL;
-    userevent.data2 = NULL;
-    
-    event.type = SDL_USEREVENT;
-    event.user = userevent;
-    
-    SDL_PushEvent( &event );
-    
-    return elapsed;
-}
-
 Engine::Engine( string filename )
 {
     _mapper = std::shared_ptr<Mapper>( 
@@ -71,59 +48,30 @@ Engine::~Engine()
 
 void Engine::Run()
 {
-    bool keyTrigger = true;
     int framesToRender = 1;
-    SDL_AddTimer( std::round(16.66666 * framesToRender), Step, nullptr );
-    
+    const int targetFPS = 60;
+    const int targetFrameTime = (1000.0f / targetFPS) * framesToRender;
+
     SDL_Event evt;
     while (1)
     {
         u32 startTicks = SDL_GetTicks();
-        
-        /*while (SDL_PollEvent(&evt))
+
+        while (SDL_PollEvent( &evt ))
         {
-            switch(evt.type)
+            switch (evt.type)
             {
-                case SDL_USEREVENT:
-                    RenderFrames( framesToRender );
-                    break;
-            }
-        }
-        
-        RenderFrames(framesToRender);
-        
-        while (SDL_GetTicks() - startTicks < (1000 / 60))
-        {
-            std::this_thread::yield();
-        }*/
-        
-        
-        SDL_WaitEvent( &evt );
-        
-        switch(evt.type)
-        {
-            case SDL_USEREVENT:
-                RenderFrames( framesToRender );
-                break;
-                
-            case SDL_KEYUP:
-                keyTrigger = true;
-                break;
-                
-            case SDL_KEYDOWN:
-                if (keyTrigger)
+                case SDL_KEYDOWN:
                 {
-                    keyTrigger = false;
-                    
                     auto states = SDL_GetKeyboardState( nullptr );
                     if (states[SDL_SCANCODE_V] != 0)
                     {
                         _settings.ShowDebugViews = !_settings.ShowDebugViews;
-                    
+
                         auto winSize = _settings.ShowDebugViews
                             ? Renderer::DebugWinSize
                             : Renderer::NormalWinSize;
-                    
+
                         _renderer->SetWinSize( winSize );
                     }
                     else if (states[SDL_SCANCODE_O] != 0)
@@ -134,16 +82,22 @@ void Engine::Run()
                     {
                         _settings.Scanline = !_settings.Scanline;
                     }
-                    else if (states[SDL_SCANCODE_Q] != 0)
+                    else if (states[SDL_SCANCODE_Q] != 0 || states[SDL_SCANCODE_ESCAPE] != 0)
                     {
                         exit( 0 );
                     }
                 }
-                
                 break;
+            }
         }
-        
+
+        RenderFrames( framesToRender );
+
+        // Wait to mantain framerate:
         int deltaTicks = SDL_GetTicks() - startTicks;
+        if (deltaTicks < targetFrameTime)
+            SDL_Delay( (targetFrameTime - deltaTicks) );
+
         if (deltaTicks > 0)
         {
             _fpsValues.push_front( (framesToRender * 1000.0f) / deltaTicks );
@@ -161,6 +115,14 @@ void Engine::Run()
 
 void Engine::RenderFrames( u32 framesToRender )
 {
+    static bool isRendering = false;
+
+    // drop frames if too slow
+    if (isRendering)
+        return;
+
+    isRendering = true;
+
     u32 tickStart = SDL_GetTicks();
 
     Cpu    *cpu    = _cpu.get();
@@ -214,6 +176,8 @@ void Engine::RenderFrames( u32 framesToRender )
             }
 
         } while (_currentFramePixel != 0);
+
+        isRendering = false;
     }
 
     u32 deltaTicks = SDL_GetTicks() - tickStart;
