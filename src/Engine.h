@@ -30,25 +30,20 @@ public:
 
 private:
     std::shared_ptr<Mapper>     MakeMapper( std::unique_ptr<Rom> rom );
-    
+
     std::unique_ptr<Cpu>        _cpu;
     std::shared_ptr<Ppu>        _ppu;
     std::shared_ptr<Input>      _input;
     std::shared_ptr<Mapper>     _mapper;
     std::unique_ptr<Renderer>   _renderer;
     
-    std::list<float>            _fpsValues;
-    std::list<float>            _internalFpsValues;
-
     DebugOutput                 _debugOutput;
     Settings                    _settings;
-    
+
     u64                         _cpuCycles = 0;
     u32                         _ppuCycles = 0;
     u32                         _currentFramePixel = 0;
     u16                         _curScanlinePixel = 0;
-    
-    const int                   _maxFpsValues = 100;
 };
 
 #endif /* defined(__OldNES__Engine__) */

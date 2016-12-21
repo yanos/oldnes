@@ -72,7 +72,7 @@ Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
     TTF_Init();
     
 #if defined(_WIN64)
-    _courrierFont = TTF_OpenFont( "fonts/cour.ttf", 12 );
+    _courrierFont = TTF_OpenFont( "fonts/courier new.ttf", 12 );
 #elif defined(__APPLE__)
     _courrierFont = TTF_OpenFont( "/Library/Fonts/Courier New.ttf", 12 );
 #endif
@@ -306,23 +306,21 @@ void Renderer::BlitSprite( SDL_Surface* patternSurface,
 
 void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
 {
-    /*auto txtColor = _masterColors[60];
+    auto txtColor = _masterColors[60];
     
     const u8 buffSize = 64;
     char buffer[buffSize];
     
     snprintf( buffer,
               buffSize,
-              "f %.1f i %.1f l %.1f h %.1f",
+              "fps %.1f frame %.1fms",
               debugOutput.Fps,
-              debugOutput.InternalFps,
-              debugOutput.MinFps,
-              debugOutput.MaxFps );
+              debugOutput.FrameTime );
 
     auto txtSurface = TTF_RenderText_Solid( _courrierFont, buffer, txtColor );
 
     SDL_BlitSurface( txtSurface, nullptr, _screenSurface, nullptr );
-    SDL_FreeSurface( txtSurface );*/
+    SDL_FreeSurface( txtSurface );
 }
 
 void Renderer::DrawPalettes( const u8* palettes )

@@ -42,21 +42,37 @@ Engine::Engine( string filename )
 
 Engine::~Engine()
 {
-    _fpsValues.clear();
-    _internalFpsValues.clear();
+
+}
+
+float GetAverage( std::list<float> values, int newValue, int maxValues )
+{
+    values.push_front( newValue );
+
+    if (values.size() > maxValues)
+        values.pop_back();
+
+    float sum = std::accumulate(
+        values.begin(),
+        values.end(),
+        0.0f );
+
+    return sum / values.size();
 }
 
 void Engine::Run()
 {
-    int framesToRender = 1;
-    const int targetFPS = 60;
+    const int averageMaxValue = 50;
+    const int framesToRender  = 1;
+    const int targetFPS       = 50;
     const int targetFrameTime = (1000.0f / targetFPS) * framesToRender;
+
+    std::list<float> fpsValues;
+    std::list<float> frameTimeValues;
 
     SDL_Event evt;
     while (1)
     {
-        u32 startTicks = SDL_GetTicks();
-
         while (SDL_PollEvent( &evt ))
         {
             switch (evt.type)
@@ -82,6 +98,10 @@ void Engine::Run()
                     {
                         _settings.Scanline = !_settings.Scanline;
                     }
+                    else if (states[SDL_SCANCODE_S] != 0)
+                    {
+                        _settings.ShowSprite = !_settings.ShowSprite;
+                    }
                     else if (states[SDL_SCANCODE_Q] != 0 || states[SDL_SCANCODE_ESCAPE] != 0)
                     {
                         exit( 0 );
@@ -91,38 +111,30 @@ void Engine::Run()
             }
         }
 
+        u32 startTicks = SDL_GetTicks();
+
         RenderFrames( framesToRender );
 
         // Wait to mantain framerate:
-        int deltaTicks = SDL_GetTicks() - startTicks;
-        if (deltaTicks < targetFrameTime)
-            SDL_Delay( (targetFrameTime - deltaTicks) );
+        int frameTime = SDL_GetTicks() - startTicks;
+        if (frameTime < targetFrameTime)
+            SDL_Delay( (targetFrameTime - frameTime) );
 
-        if (deltaTicks > 0)
-        {
-            _fpsValues.push_front( (framesToRender * 1000.0f) / deltaTicks );
-            if (_fpsValues.size() > _maxFpsValues)
-                _fpsValues.pop_back();
+        int totalTime = SDL_GetTicks() - startTicks;
 
-            float sum = std::accumulate( _fpsValues.begin(),
-                                         _fpsValues.end(),
-                                         0.0f );
+        _debugOutput.FrameTime = 
+            GetAverage( frameTimeValues, frameTime, averageMaxValue ) / framesToRender;
 
-            _debugOutput.Fps = sum / _fpsValues.size();
-        }
+        _debugOutput.Fps = 
+            (framesToRender * 1000.0f) / GetAverage( fpsValues, totalTime, averageMaxValue );
     }
+
+    fpsValues.clear();
+    frameTimeValues.clear();
 }
 
 void Engine::RenderFrames( u32 framesToRender )
 {
-    static bool isRendering = false;
-
-    // drop frames if too slow
-    if (isRendering)
-        return;
-
-    isRendering = true;
-
     u32 tickStart = SDL_GetTicks();
 
     Cpu    *cpu    = _cpu.get();
@@ -176,33 +188,6 @@ void Engine::RenderFrames( u32 framesToRender )
             }
 
         } while (_currentFramePixel != 0);
-
-        isRendering = false;
-    }
-
-    u32 deltaTicks = SDL_GetTicks() - tickStart;
-    if (deltaTicks > 0)
-    {
-        _internalFpsValues.push_front(
-            (framesToRender * 1000.0f) / deltaTicks );
-    
-        if (_internalFpsValues.size() > _maxFpsValues)
-            _internalFpsValues.pop_back();
-    
-        float sum = 0;
-        float min = std::numeric_limits<float>::max();
-        float max = std::numeric_limits<float>::min();
-    
-        for (auto f : _internalFpsValues)
-        {
-            sum += f;
-            if (f < min) min = f;
-            if (f > max) max = f;
-        }
-    
-        _debugOutput.InternalFps = sum / _internalFpsValues.size();
-        _debugOutput.MinFps = min;
-        _debugOutput.MaxFps = max;
     }
 }
 
