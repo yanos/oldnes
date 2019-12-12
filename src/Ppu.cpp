@@ -15,19 +15,16 @@ Ppu::Ppu( std::shared_ptr<Mapper> mapper )
     _mapper = mapper;
 }
 
-Ppu::~Ppu()
-{
-    
-}
+Ppu::~Ppu() { }
 
 void Ppu::FlushTileBuffer()
 {
     u8 paletteMask = 0x3;
-        
+
     // shiftAmout = 0 or 2 or 4 or 6
     u8 shiftAmount = (((_tileBuffer.NtAddr / 64) & 0x1) * 4)     // 0 or 4
         + (_tileBuffer.NtAddr & 0x2);                            // 0 or 2
-        
+
     paletteMask <<= shiftAmount;
     u16 paletteHighByte = (_tileBuffer.AttribByte & paletteMask) << 8;
 
@@ -35,49 +32,49 @@ void Ppu::FlushTileBuffer()
     paletteHighByte >>= (shiftAmount + 6);
 
     u32 yOffset = _tileBuffer.Scanline * _screenBufferWidth;
-                        
+
     // we can now draw 8 pixels
     int xOffset = _tileBuffer.ScanlinePixel - _fineXScroll - 1 + 8;
-        
+
     u8 lowPtByte = _tileBuffer.LowPatternByte;
     u8 highPtByte = _tileBuffer.HighPatternByte;
 
     u8 pixValues[8];
-    
+
     pixValues[0] = ( (lowPtByte & 0x80) >> 7 )
                  | ( (highPtByte & 0x80) >> 6 ) 
                  | paletteHighByte;
-        
+
     pixValues[1] = ( (lowPtByte & 0x40) >> 6 )
                  | ( (highPtByte & 0x40) >> 5 ) 
                  | paletteHighByte;
-        
+
     pixValues[2] = ( (lowPtByte & 0x20) >> 5 )
                  | ( (highPtByte & 0x20) >> 4 ) 
                  | paletteHighByte;
-        
+
     pixValues[3] = ( (lowPtByte & 0x10) >> 4 )
                  | ( (highPtByte & 0x10) >> 3 ) 
                  | paletteHighByte;
-        
+
     pixValues[4] = ( (lowPtByte & 0x8)  >> 3 )
                  | ( (highPtByte & 0x8)  >> 2 ) 
                  | paletteHighByte;
-        
+
     pixValues[5] = ( (lowPtByte & 0x4)  >> 2 )
                  | ( (highPtByte & 0x4)  >> 1 ) 
                  | paletteHighByte;
-        
+
     pixValues[6] = ( (lowPtByte & 0x2)  >> 1 )
                  | (  highPtByte & 0x2 ) 
                  | paletteHighByte;
-        
+
     pixValues[7] = ( lowPtByte & 0x1 )
                  | ( (highPtByte & 0x1)  << 1 ) 
                  | paletteHighByte;
-    
+
     std::memcpy( &_frameData[xOffset + yOffset], pixValues, 8 );
-    
+
     if (    _tileBuffer.Scanline == _firstNonZeroSpriteY + 1
          && xOffset > _firstNonZeroSpriteX
          && ((pixValues[0] & 0x3) != 0 || (pixValues[1] & 0x3) != 0 || (pixValues[2] & 0x3) != 0 || (pixValues[3] & 0x3) != 0 || (pixValues[4] & 0x3) != 0 || (pixValues[5] & 0x3) != 0 || (pixValues[6] & 0x3) != 0 || (pixValues[7] & 0x3) != 0) )
@@ -101,7 +98,7 @@ u32 Ppu::Step()
                 {
                     // If rendering is enabled, fine Y is incremented at dot 256 of each scanline, overflowing to coarse Y, and finally adjusted to wrap among the nametables vertically.
                     // Bits 12-14 are fine Y. Bits 5-9 are coarse Y. Bit 11 selects the vertical nametable.
-            
+
                     if ((_vramAddr & 0x7000) != 0x7000)                 // if fine Y < 7
                         _vramAddr += 0x1000;                            // increment fine Y
                     else                                                
@@ -120,7 +117,7 @@ u32 Ppu::Step()
                 
                         _vramAddr = (_vramAddr & ~0x3e0) | (y << 5);    // put coarse Y back into v
                     }
-                    
+
                     // also increment X
                     IncHorizontalVramAddr();
                 }
@@ -216,7 +213,7 @@ u32 Ppu::Step()
                     u8 fineY = (_vramAddr & 0x7000) >> 12;
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
-                    
+
                     _tileBuffer.LowPatternByte = _mapper->ReadChr( baseIdx + offset );
                 }
                 else if (_currentScanlinePixel == 327 || _currentScanlinePixel == 335)
@@ -224,7 +221,7 @@ u32 Ppu::Step()
                     u8 fineY = (_vramAddr & 0x7000) >> 12;
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
-                    
+
                     _tileBuffer.HighPatternByte
                         = _mapper->ReadChr( baseIdx + offset + 8 );
                 }
@@ -273,13 +270,13 @@ u32 Ppu::Step()
 byte Ppu::ReadByte( addr address )
 {
     byte retValue;
-    
+
     address &= 0x2007;
 
     switch( address )
     {
         case 0x2002:    // PPUSTATUS
-            
+
             // check for sprite 0 hit
             // TODO check if the background tile underneath
             //      the sprite is not transparent
@@ -306,8 +303,8 @@ byte Ppu::ReadByte( addr address )
                     for (u8 j=0; j<8 && !firstPixelFound; ++j)
                     {
                         u8 lByte = _mapper->ReadChr( patternTblAddr + j );
-                        u8 hByte = _mapper->ReadChr( patternTblAddr + j + 8 );
-                                                
+                        // todo why was this unused? u8 hByte = _mapper->ReadChr( patternTblAddr + j + 8 );
+
                         for (u8 i=0; i<8 && !firstPixelFound; ++i)
                         {
                             if ((((lByte & (0x80>>i) | (lByte & (0x80>>i) << 1)) >> (7 - i)) | (hPal << 2)) & 0x3)
@@ -323,16 +320,16 @@ byte Ppu::ReadByte( addr address )
 
             // w:                  = 0
             _firstWrite = true;
-            
+
             retValue = _ppuStatus;
             _ppuStatus &= 0x7f;
 
             break;
-            
+
         case 0x2004:    // OAMDATA
             retValue = _oamData[_oamAddr];
             break;
-            
+
         case 0x2007:    // PPUDATA
         {
             u16 addrRead = _vramAddr;
@@ -355,7 +352,7 @@ byte Ppu::ReadByte( addr address )
             }
         }
         break;
-            
+
         default:
             assert (false);
             break;
@@ -364,7 +361,7 @@ byte Ppu::ReadByte( addr address )
     return retValue;
 }
 
-word Ppu::ReadWord( addr address )
+word Ppu::ReadWord( addr )
 {
     assert (false);
     return 0;

@@ -37,12 +37,12 @@ Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
     {
         //std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
     }
-    
+
     _winSizes[NormalWinSize]         = { 256, 240 };
     _winSizes[DebugWinSize]          = { 768, 512 };
     _winSizes[NormalScanlineWinSize] = { 768, 512 };
     _winSizes[DebugScanlineWinSize]  = { 768, 512 };
-    
+
     // TODO: const that shit once MS likes it
     _mainScreenRect           = { 0,   0,   256, 240 };
     _bgPaletteRect            = { 0,   240, 128, 8   };
@@ -51,7 +51,7 @@ Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
     _rightPatternTableRect    = { 128, 256, 128, 128 };
     _nameTableRect            = { 256, 0,   512, 480 };
     _debugOutputRect          = { 0,   384, 256, 128 };
-    
+
     _nameTableSurface         = SDL_CreateRGBSurface( 0, _nameTableRect.w,         _nameTableRect.h,         8, 0, 0, 0, 0 );
     _bgPaletteSurface         = SDL_CreateRGBSurface( 0, _bgPaletteRect.w,         _bgPaletteRect.h,         8, 0, 0, 0, 0 );
     _objPaletteSurface        = SDL_CreateRGBSurface( 0, _objPaletteRect.w,        _objPaletteRect.h,        8, 0, 0, 0, 0 );
@@ -59,14 +59,14 @@ Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
     _rightPatternTableSurface = SDL_CreateRGBSurface( 0, _rightPatternTableRect.w, _rightPatternTableRect.h, 8, 0, 0, 0, 0 );
     _spriteSurface            = SDL_CreateRGBSurface( 0, _mainScreenRect.w,        _mainScreenRect.h,        8, 0, 0, 0, 0 );
     _debugOutputSurface       = SDL_CreateRGBSurface( 0, _debugOutputRect.w,       _debugOutputRect.h,       8, 0, 0, 0, 0 );
-    
+
     for (int i=0; i<64; ++i)
     {
         _masterColors[i].r = (NesPalette[i] & 0xff0000) >> 16;
         _masterColors[i].g = (NesPalette[i] & 0x00ff00) >> 8;
         _masterColors[i].b = NesPalette[i] & 0x0000ff;
     }
-    
+
     SetWinSize( NormalWinSize );
 
     TTF_Init();
@@ -226,7 +226,7 @@ void Renderer::DrawSprites( SpritePriority priority )
         : _rightPatternTableSurface;
 
     // TODO deal with 8x16 sprites
-    bool tallSprite = (ppuCtrl & 0x20) != 0;
+    //bool tallSprite = (ppuCtrl & 0x20) != 0;
    
     SDL_Rect src = { 0, 0, 8, 8 };
     SDL_Rect dst = { 0, 0, 8, 8 };
@@ -245,7 +245,7 @@ void Renderer::DrawSprites( SpritePriority priority )
             continue;
 
         dst.y = oam[i];
-        
+
         Flip flip = (Flip)(attrib >> 6);
         u8 hPalette = attrib & 0x3;
 
@@ -260,7 +260,7 @@ void Renderer::DrawSprites( SpritePriority priority )
 
     SDL_UnlockSurface( _spriteSurface );
     SDL_UnlockSurface( srcPatternSurface );
-    
+
     // final blit on the screen
     SDL_BlitSurface( _spriteSurface, nullptr, _screenSurface, &_mainScreenRect );
 }
@@ -307,15 +307,15 @@ void Renderer::BlitSprite( SDL_Surface* patternSurface,
 void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
 {
     auto txtColor = _masterColors[60];
-    
+
     const u8 buffSize = 64;
     char buffer[buffSize];
-    
-    snprintf( buffer,
-              buffSize,
-              "fps %.1f frame %.1fms",
-              debugOutput.Fps,
-              debugOutput.FrameTime );
+
+    _snprintf_s( buffer,
+                buffSize,
+                "fps %.1f frame %.1fms",
+                debugOutput.Fps,
+                debugOutput.FrameTime );
 
     auto txtSurface = TTF_RenderText_Solid( _courrierFont, buffer, txtColor );
 
@@ -325,6 +325,8 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
 
 void Renderer::DrawPalettes( const u8* palettes )
 {
+    (palettes);
+
     //if (_ppu->IsPaletteDirty())
     {
         SDL_LockSurface( _bgPaletteSurface );
@@ -355,7 +357,7 @@ void Renderer::DrawPalettes( const u8* palettes )
         SDL_UnlockSurface( _bgPaletteSurface );
         SDL_UnlockSurface( _objPaletteSurface );
     }
-    
+
     SDL_BlitSurface( _bgPaletteSurface, nullptr, _screenSurface, &_bgPaletteRect );
     SDL_BlitSurface( _objPaletteSurface, nullptr, _screenSurface, &_objPaletteRect );
 }
@@ -368,7 +370,7 @@ void Renderer::DrawPatternTables()
         SDL_LockSurface( _rightPatternTableSurface );
 
         u8 *patternLine, *pixelPtr;
-        for (int i=0; i<0x800; ++i)
+        for (u16 i=0; i<0x800; ++i)
         {
             u16 tileStart = ((i/8) * 16) + (i & 0x7); // TODO: simplify!
 
@@ -419,7 +421,7 @@ void Renderer::DrawNameTables( const u8* nameTables, const u8 ppuCtrl )
         SDL_Rect src = { 0, 0, 8, 8 };
         SDL_Rect dst = { 0, 0, 8, 8 };
 
-        for (int nt=0; nt<4; ++nt)
+        for (u8 nt=0; nt<4; ++nt)
         {
             // name tables
             for (int i=0; i<0x3c0; ++i)
@@ -454,7 +456,6 @@ void Renderer::DrawNameTables( const u8* nameTables, const u8 ppuCtrl )
                 u16 yOffset = ((i / 8) * 32) + ntYOffset;
                 
                 // aarrff! there's probably a more efficient way
-                
                 u16 yLimit = 240 * ((nt >> 1) ^ 1);
                 for (u8 y=0; y<32 && y < yLimit; ++y)
                 {

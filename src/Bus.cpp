@@ -34,11 +34,11 @@ byte Bus::ReadByte( addr address )
     {
         if (address == 0x4016 || address == 0x4017)
             return _input->ReadByte( address );
+
+        return 0;
     }
     else
         return _mapper->ReadByte(address);
-            
-    assert (false);
 }
 
 word Bus::ReadWord( addr address )
@@ -51,8 +51,8 @@ word Bus::ReadWord( addr address )
         return _mapper->ReadWord( address );
     //else if (address >= 0x6000 && address < 0x8000)
     //    return _sram[address - _sramOffset] | ((_sram[address + 1U - _sramOffset]) << 8);
-    
-    assert (false);
+
+    //assert (false);
 }
 
 void Bus::WriteByte( addr address, byte value )
@@ -98,7 +98,5 @@ void Bus::WriteByte( addr address, byte value )
         _mapper->WriteByte( address, value );
         return;
     }
-                
-    assert (false);
 }
 

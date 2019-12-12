@@ -1,4 +1,4 @@
-OldNES.v12.suo
+*.suo
 OldNES.opensdf
 OldNES.sdf
 OldNES.VC.db
@@ -7,3 +7,4 @@ OldNES.VC.VC.opendb
 .vs/
 x64/
 packages/
+*.args.json
