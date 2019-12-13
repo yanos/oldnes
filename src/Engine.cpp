@@ -31,11 +31,11 @@ Engine::Engine( string filename )
         new Renderer( _ppu, _mapper ) );
 
     _input = std::shared_ptr<Input>( new Input() );
-    
+
     _cpu = std::unique_ptr<Cpu>( 
         new Cpu( std::unique_ptr<Bus>( 
             new Bus( _mapper, _ppu, _input ) ) ) );
-    
+
     _cpuCycles = 0;
     _cpu->Reset();
 }
@@ -45,21 +45,6 @@ Engine::~Engine()
 
 }
 
-float GetAverage( std::list<float> values, int newValue, int maxValues )
-{
-    values.push_front( newValue );
-
-    if (values.size() > maxValues)
-        values.pop_back();
-
-    float sum = std::accumulate(
-        values.begin(),
-        values.end(),
-        0.0f );
-
-    return sum / values.size();
-}
-
 void Engine::Run()
 {
     const int averageMaxValue = 50;
@@ -67,8 +52,7 @@ void Engine::Run()
     const int targetFPS       = 50;
     const int targetFrameTime = (1000.0f / targetFPS) * framesToRender;
 
-    std::list<float> fpsValues;
-    std::list<float> frameTimeValues;
+    float avgFPS = 1.0;
 
     SDL_Event evt;
     while (1)
@@ -117,26 +101,21 @@ void Engine::Run()
 
         // Wait to mantain framerate:
         int frameTime = SDL_GetTicks() - startTicks;
-        if (frameTime < targetFrameTime)
-            SDL_Delay( (targetFrameTime - frameTime) );
+        int deltaTarget = targetFrameTime - frameTime;
 
-        int totalTime = SDL_GetTicks() - startTicks;
+        if (deltaTarget > 0)
+            SDL_Delay(deltaTarget);
 
-        _debugOutput.FrameTime = 
-            GetAverage( frameTimeValues, frameTime, averageMaxValue ) / framesToRender;
+        if (frameTime > 0)
+            avgFPS = 0.9f * avgFPS + (1.0f - 0.9f) * (1000.0f / frameTime);
 
-        _debugOutput.Fps = 
-            (framesToRender * 1000.0f) / GetAverage( fpsValues, totalTime, averageMaxValue );
+        _debugOutput.Fps = 0;
+        _debugOutput.MaxFps = avgFPS;
     }
-
-    fpsValues.clear();
-    frameTimeValues.clear();
 }
 
 void Engine::RenderFrames( u32 framesToRender )
 {
-    u32 tickStart = SDL_GetTicks();
-
     Cpu    *cpu    = _cpu.get();
     Ppu    *ppu    = _ppu.get();
     //Mapper *mapper = _mapper.get();
@@ -155,12 +134,12 @@ void Engine::RenderFrames( u32 framesToRender )
             if (ppu->IsInVBlank() && !vblankDone)
             {
                 vblankDone = true;
-                
+
                 // TODO move this when sprite caching is implemented
                 //_renderer->DrawPatternTables( mapper->GetPatternTables() );
-                
+
                 _renderer->DrawPatternTables();
-                
+
                 _renderer->DrawFrame( ppu->GetFrameData(), ppu->GetPalettes() );
 
                 if (_settings.ShowDebugViews)
@@ -169,12 +148,12 @@ void Engine::RenderFrames( u32 framesToRender )
                     _renderer->DrawNameTables( ppu->GetNameTables(),
                                                ppu->GetPpuCtrl() );
                 }
-                
+
                 if (_settings.ShowDebugOutput)
                 {
                     _renderer->DrawDebugOutput( _debugOutput );
                 }
-                
+
                 _renderer->PresentScreen();
                 
                 _input->ReadInputs();
@@ -200,18 +179,18 @@ std::shared_ptr<Mapper> Engine::MakeMapper( std::unique_ptr<Rom> rom )
             return std::shared_ptr<Mapper>( new Mapper0( std::move( rom ) ) );
             break;
         }
-            
+
         case 1:
         {
             return std::shared_ptr<Mapper1>( new Mapper1( std::move( rom ) ) );
             break;
         }
-            
+
         default:
             assert( false );
             break;
     }
-    
+
     return nullptr;
 }
 

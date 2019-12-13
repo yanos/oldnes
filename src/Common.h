@@ -32,9 +32,7 @@ enum MirroringMode { Horizontal = ~0x400, Vertical = ~0x800, OneScreen, FourScre
 struct DebugOutput
 {
     float Fps;
-    float FrameTime;
     float MaxFps;
-    float MinFps;
 };
 
 struct Settings

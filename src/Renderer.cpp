@@ -313,9 +313,9 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
 
     _snprintf_s( buffer,
                 buffSize,
-                "fps %.1f frame %.1fms",
+                "fps %.1f frame %.1f",
                 debugOutput.Fps,
-                debugOutput.FrameTime );
+                debugOutput.MaxFps );
 
     auto txtSurface = TTF_RenderText_Solid( _courrierFont, buffer, txtColor );
 
