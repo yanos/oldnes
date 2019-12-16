@@ -47,12 +47,11 @@ Engine::~Engine()
 
 void Engine::Run()
 {
-    const int averageMaxValue = 50;
-    const int framesToRender  = 1;
-    const int targetFPS       = 50;
-    const int targetFrameTime = (1000.0f / targetFPS) * framesToRender;
+    const int targetFPS       = 60;
+    const int targetFrameTime = (1000.0f / targetFPS);
 
     float avgFPS = 1.0;
+    auto frequency = SDL_GetPerformanceFrequency();
 
     SDL_Event evt;
     while (1)
@@ -95,12 +94,12 @@ void Engine::Run()
             }
         }
 
-        u32 startTicks = SDL_GetTicks();
+        u64 startTicks = SDL_GetPerformanceCounter();
 
-        RenderFrames( framesToRender );
+        RenderFrame();
 
         // Wait to mantain framerate:
-        int frameTime = SDL_GetTicks() - startTicks;
+        int frameTime = ((SDL_GetPerformanceCounter() - startTicks) * 1000) / frequency;
         int deltaTarget = targetFrameTime - frameTime;
 
         if (deltaTarget > 0)
@@ -109,12 +108,12 @@ void Engine::Run()
         if (frameTime > 0)
             avgFPS = 0.9f * avgFPS + (1.0f - 0.9f) * (1000.0f / frameTime);
 
-        _debugOutput.Fps = 0;
+        _debugOutput.Fps = 1000.0f / (((SDL_GetPerformanceCounter() - startTicks) * 1000.0f) / frequency);
         _debugOutput.MaxFps = avgFPS;
     }
 }
 
-void Engine::RenderFrames( u32 framesToRender )
+void Engine::RenderFrame()
 {
     Cpu    *cpu    = _cpu.get();
     Ppu    *ppu    = _ppu.get();
@@ -122,52 +121,49 @@ void Engine::RenderFrames( u32 framesToRender )
 
     bool vblankDone = false;
 
-    for (u32 i=0; i<framesToRender; ++i)
+    do 
     {
-        do 
+        _currentFramePixel = ppu->Step();
+
+        if ((_currentFramePixel % 3) == 0)
+            _cpuCycles += cpu->Step();
+
+        if (ppu->IsInVBlank() && !vblankDone)
         {
-            _currentFramePixel = ppu->Step();
+            vblankDone = true;
 
-            if ((_currentFramePixel % 3) == 0)
-                _cpuCycles += cpu->Step();
+            // TODO move this when sprite caching is implemented
+            //_renderer->DrawPatternTables( mapper->GetPatternTables() );
 
-            if (ppu->IsInVBlank() && !vblankDone)
+            _renderer->DrawPatternTables();
+
+            _renderer->DrawFrame( ppu->GetFrameData(), ppu->GetPalettes() );
+
+            if (_settings.ShowDebugViews)
             {
-                vblankDone = true;
-
-                // TODO move this when sprite caching is implemented
-                //_renderer->DrawPatternTables( mapper->GetPatternTables() );
-
-                _renderer->DrawPatternTables();
-
-                _renderer->DrawFrame( ppu->GetFrameData(), ppu->GetPalettes() );
-
-                if (_settings.ShowDebugViews)
-                {
-                    _renderer->DrawPalettes( ppu->GetPalettes() );
-                    _renderer->DrawNameTables( ppu->GetNameTables(),
-                                               ppu->GetPpuCtrl() );
-                }
-
-                if (_settings.ShowDebugOutput)
-                {
-                    _renderer->DrawDebugOutput( _debugOutput );
-                }
-
-                _renderer->PresentScreen();
-                
-                _input->ReadInputs();
-
-                if (ppu->NmiAtVBlank())
-                    cpu->Nmi();
-            }
-            else if (!ppu->IsInVBlank() && vblankDone)
-            {
-                vblankDone = false;
+                _renderer->DrawPalettes( ppu->GetPalettes() );
+                _renderer->DrawNameTables( ppu->GetNameTables(),
+                                           ppu->GetPpuCtrl() );
             }
 
-        } while (_currentFramePixel != 0);
-    }
+            if (_settings.ShowDebugOutput)
+            {
+                _renderer->DrawDebugOutput( _debugOutput );
+            }
+
+            _renderer->PresentScreen();
+
+            _input->ReadInputs();
+
+            if (ppu->NmiAtVBlank())
+                cpu->Nmi();
+        }
+        else if (!ppu->IsInVBlank() && vblankDone)
+        {
+            vblankDone = false;
+        }
+
+    } while (_currentFramePixel != 0);
 }
 
 std::shared_ptr<Mapper> Engine::MakeMapper( std::unique_ptr<Rom> rom )

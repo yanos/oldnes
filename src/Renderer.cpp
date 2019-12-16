@@ -313,7 +313,7 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
 
     _snprintf_s( buffer,
                 buffSize,
-                "fps %.1f frame %.1f",
+                "fps %.1f max fps %.1f",
                 debugOutput.Fps,
                 debugOutput.MaxFps );
 

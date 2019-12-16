@@ -26,7 +26,7 @@ public:
     ~Engine();
 
     void Run();
-    void RenderFrames( u32 nbFrames );
+    void RenderFrame();
 
 private:
     std::shared_ptr<Mapper>     MakeMapper( std::unique_ptr<Rom> rom );
