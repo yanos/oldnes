@@ -47,9 +47,8 @@ Engine::~Engine()
 
 void Engine::Run()
 {
-    const int targetFPS       = 60;
-    const int targetFrameTime = (1000.0f / targetFPS);
-
+    const int targetFPS = 60;
+    const float targetFrameTime = 1000.0f / targetFPS;
     float avgFPS = 1.0;
     auto frequency = SDL_GetPerformanceFrequency();
 
@@ -99,8 +98,8 @@ void Engine::Run()
         RenderFrame();
 
         // Wait to mantain framerate:
-        int frameTime = ((SDL_GetPerformanceCounter() - startTicks) * 1000) / frequency;
-        int deltaTarget = targetFrameTime - frameTime;
+        float frameTime = ((SDL_GetPerformanceCounter() - startTicks) * 1000.0f) / frequency;
+        float deltaTarget = targetFrameTime - frameTime;
 
         if (deltaTarget > 0)
             SDL_Delay(deltaTarget);
@@ -108,7 +107,7 @@ void Engine::Run()
         if (frameTime > 0)
             avgFPS = 0.9f * avgFPS + (1.0f - 0.9f) * (1000.0f / frameTime);
 
-        _debugOutput.Fps = 1000.0f / (((SDL_GetPerformanceCounter() - startTicks) * 1000.0f) / frequency);
+        _debugOutput.Fps = (float)frequency / (float)(SDL_GetPerformanceCounter() - startTicks);
         _debugOutput.MaxFps = avgFPS;
     }
 }
