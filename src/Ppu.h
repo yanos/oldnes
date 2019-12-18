@@ -61,9 +61,9 @@ public:
                                                             
     const u16  GetCurrentScanline()                         { return _currentScanline;        }
     const u32  GetCurrentFramePixel()                       { return _currentFramePixel;      }
-        
+
 private:
-    
+
     struct TileBuffer
     {
         u16 Scanline = 0;
@@ -71,7 +71,7 @@ private:
 
         u16 NtAddr = 0;
         u8  NtByte = 0;
-        
+
         u16 AttribAddr = 0;
         u8  AttribByte = 0;
         

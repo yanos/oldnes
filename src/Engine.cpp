@@ -120,7 +120,7 @@ void Engine::RenderFrame()
 
     bool vblankDone = false;
 
-    do 
+    do
     {
         _currentFramePixel = ppu->Step();
 

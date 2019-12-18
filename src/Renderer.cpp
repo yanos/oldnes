@@ -208,11 +208,12 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
     }
     
     SDL_UnlockSurface( _screenSurface );
-    
+
     // draw sprites on top
     DrawSprites( FrontPriority );
 }
 
+// todo: probably need to be drawn line by line to deal with overflow falg correctly
 void Renderer::DrawSprites( SpritePriority priority )
 {
     const u8 *oam = _ppu->GetOam();
@@ -221,22 +222,23 @@ void Renderer::DrawSprites( SpritePriority priority )
     // clear with color key
     SDL_FillRect( _spriteSurface, nullptr, 0 );
 
+    bool tallSprite = ppuCtrl & 0x20;
+
     SDL_Surface* srcPatternSurface = (ppuCtrl & 0x8) == 0
         ? _leftPatternTableSurface
         : _rightPatternTableSurface;
 
-    // TODO deal with 8x16 sprites
-    //bool tallSprite = (ppuCtrl & 0x20) != 0;
-   
     SDL_Rect src = { 0, 0, 8, 8 };
     SDL_Rect dst = { 0, 0, 8, 8 };
 
-    SDL_LockSurface( _spriteSurface );
-    SDL_LockSurface( srcPatternSurface );
-    
+    SDL_LockSurface(_spriteSurface);
+    SDL_LockSurface(_leftPatternTableSurface);
+    SDL_LockSurface(_rightPatternTableSurface);
+
     for (u8 i=252; i>0; i-=4)
     {
-        u8 attrib = oam[i+2];
+        // byte 2
+        u8 attrib = oam[i + 2];
         SpritePriority prio = (attrib & 0x20) == 0
             ? FrontPriority
             : BackPriority;
@@ -244,22 +246,43 @@ void Renderer::DrawSprites( SpritePriority priority )
         if (prio != priority)
             continue;
 
+        // byte 0
         dst.y = oam[i];
+
+        // byte 1
+        u8 tileNum = tallSprite 
+            ? oam[i + 1] & 0xfe
+            : oam[i + 1];
+
+        if (tallSprite)
+            srcPatternSurface = (oam[i + 1] & 0x1) == 0
+                ? _leftPatternTableSurface
+                : _rightPatternTableSurface;
 
         Flip flip = (Flip)(attrib >> 6);
         u8 hPalette = attrib & 0x3;
 
+        // byte 3
         dst.x = oam[i+3];
-        u8 tileNum = oam[i+1];
-        
+
+        // blit
         src.x = (tileNum * 8) & 0x7f;
         src.y = ((tileNum/16) * 8) & 0x7f;
-
         BlitSprite( srcPatternSurface, &src, &dst, flip, hPalette );
+
+        if (tallSprite)
+        {
+            tileNum++;
+            dst.y += 8;
+            src.x = (tileNum * 8) & 0x7f;
+            src.y = ((tileNum / 16) * 8) & 0x7f;
+            BlitSprite(srcPatternSurface, &src, &dst, flip, hPalette);
+        }
     }
 
-    SDL_UnlockSurface( _spriteSurface );
-    SDL_UnlockSurface( srcPatternSurface );
+    SDL_UnlockSurface(_spriteSurface);
+    SDL_UnlockSurface(_leftPatternTableSurface);
+    SDL_UnlockSurface(_rightPatternTableSurface);
 
     // final blit on the screen
     SDL_BlitSurface( _spriteSurface, nullptr, _screenSurface, &_mainScreenRect );
@@ -279,15 +302,15 @@ void Renderer::BlitSprite( SDL_Surface* patternSurface,
         u8 ySrcOffset = flip & Vertical
             ? 7 - y
             : y;
-        
+
         u8* pSrc = (u8*)patternSurface->pixels
             + ((src->y + ySrcOffset) * patternSurface->pitch)
             + (src->x * patternSurface->format->BytesPerPixel);
-           
+
         u8* pDst = (u8*)_spriteSurface->pixels
            + ((dst->y + y) * _spriteSurface->pitch)
            + (dst->x * _spriteSurface->format->BytesPerPixel);
-           
+
         for (u8 x=0; x<8; ++x)
         {
             if (dst->x + x >= 256)
@@ -296,7 +319,7 @@ void Renderer::BlitSprite( SDL_Surface* patternSurface,
             u8 xSrcOffset = flip & Horizontal
                 ? 7 - x
                 : x;
-            
+
             u8 val = (*(pSrc + xSrcOffset)) | (palette << 2);
             if ((val & 0x3) != 0)
                 *(pDst + x) = val;
@@ -369,7 +392,8 @@ void Renderer::DrawPatternTables()
         SDL_LockSurface( _leftPatternTableSurface );
         SDL_LockSurface( _rightPatternTableSurface );
 
-        u8 *patternLine, *pixelPtr;
+        u8* pixelPtr;
+        u8 patternLine[8];
         for (u16 i=0; i<0x800; ++i)
         {
             u16 tileStart = ((i/8) * 16) + (i & 0x7); // TODO: simplify!
@@ -377,10 +401,10 @@ void Renderer::DrawPatternTables()
             u16 x = i & 0x78; // aka ((i/8)*8) & 0x7f aka increment by 8 and wrap at 128
             u16 y = (i & 7) + (8 * ((i & ~7) / 128)); // TODO: simplifly!
 
-            // left perttern table
-            patternLine = 
-                DecodePatternLine( _mapper->ReadChr( tileStart ),
-                                   _mapper->ReadChr( tileStart + 8 ) );
+            // left pattern table
+            DecodePatternLine( patternLine,
+                               _mapper->ReadChr( tileStart ),
+                               _mapper->ReadChr( tileStart + 8 ) );
             pixelPtr = 
                 (u8*)_leftPatternTableSurface->pixels
                     + y * _leftPatternTableSurface->pitch
@@ -389,9 +413,9 @@ void Renderer::DrawPatternTables()
             std::memcpy( pixelPtr, patternLine, 8 );
 
             // right pattern table
-            patternLine = 
-                DecodePatternLine( _mapper->ReadChr( 0x1000 + tileStart ),
-                                   _mapper->ReadChr( 0x1000 + tileStart + 8 ) );
+            DecodePatternLine( patternLine,
+                               _mapper->ReadChr( 0x1000 + tileStart ),
+                               _mapper->ReadChr( 0x1000 + tileStart + 8 ) );
             pixelPtr = 
                 (u8*)_rightPatternTableSurface->pixels
                     + y * _rightPatternTableSurface->pitch
@@ -489,18 +513,14 @@ void Renderer::DrawNameTables( const u8* nameTables, const u8 ppuCtrl )
     SDL_BlitSurface( _nameTableSurface, nullptr, _screenSurface, &_nameTableRect );
 }
 
-u8* Renderer::DecodePatternLine( u8 byte1, u8 byte2 )
+inline void Renderer::DecodePatternLine( u8 result[8], u8 byte1, u8 byte2 )
 {
-    static u8 pixels[8];
-    
-    pixels[0] = ( (byte1 & 0x80) >> 7 ) | ( (byte2 & 0x80) >> 6 );
-    pixels[1] = ( (byte1 & 0x40) >> 6 ) | ( (byte2 & 0x40) >> 5 );
-    pixels[2] = ( (byte1 & 0x20) >> 5 ) | ( (byte2 & 0x20) >> 4 );
-    pixels[3] = ( (byte1 & 0x10) >> 4 ) | ( (byte2 & 0x10) >> 3 );
-    pixels[4] = ( (byte1 & 0x8)  >> 3 ) | ( (byte2 & 0x8)  >> 2 );
-    pixels[5] = ( (byte1 & 0x4)  >> 2 ) | ( (byte2 & 0x4)  >> 1 );
-    pixels[6] = ( (byte1 & 0x2)  >> 1 ) | (  byte2 & 0x2        );
-    pixels[7] = (  byte1 & 0x1        ) | ( (byte2 & 0x1)  << 1 );
-    
-    return pixels;
+    result[0] = ( (byte1 & 0x80) >> 7 ) | ( (byte2 & 0x80) >> 6 );
+    result[1] = ( (byte1 & 0x40) >> 6 ) | ( (byte2 & 0x40) >> 5 );
+    result[2] = ( (byte1 & 0x20) >> 5 ) | ( (byte2 & 0x20) >> 4 );
+    result[3] = ( (byte1 & 0x10) >> 4 ) | ( (byte2 & 0x10) >> 3 );
+    result[4] = ( (byte1 & 0x8)  >> 3 ) | ( (byte2 & 0x8)  >> 2 );
+    result[5] = ( (byte1 & 0x4)  >> 2 ) | ( (byte2 & 0x4)  >> 1 );
+    result[6] = ( (byte1 & 0x2)  >> 1 ) | (  byte2 & 0x2        );
+    result[7] = (  byte1 & 0x1        ) | ( (byte2 & 0x1)  << 1 );
 }
