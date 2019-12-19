@@ -266,16 +266,16 @@ void Renderer::DrawSprites( SpritePriority priority )
         dst.x = oam[i+3];
 
         // blit
-        src.x = (tileNum * 8) & 0x7f;
-        src.y = ((tileNum/16) * 8) & 0x7f;
+        src.x = (tileNum << 3) & 0x7f;          // (tileNum * 8) & 0x7f
+        src.y = ((tileNum >> 4) << 3) & 0x7f;   // ((tileNum / 16) * 8) & 0x7f
         BlitSprite( srcPatternSurface, &src, &dst, flip, hPalette );
 
         if (tallSprite)
         {
             tileNum++;
             dst.y += 8;
-            src.x = (tileNum * 8) & 0x7f;
-            src.y = ((tileNum / 16) * 8) & 0x7f;
+            src.x = (tileNum << 3) & 0x7f;
+            src.y = ((tileNum >> 4) << 3) & 0x7f;
             BlitSprite(srcPatternSurface, &src, &dst, flip, hPalette);
         }
     }
