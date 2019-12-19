@@ -33,6 +33,7 @@ public:
     void DrawPatternTables();
     void DrawNameTables( const u8* nameTables, const u8 ppuCtrl );
     void DrawSprites( SpritePriority priority );
+    void DrawTallSprites( SpritePriority priority );
     void DrawDebugOutput( const DebugOutput &debugOutput );
     void PresentScreen();
     void SetWinSize( WinSize winSize );

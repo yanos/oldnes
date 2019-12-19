@@ -186,7 +186,11 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
 
     SDL_BlitSurface( _debugOutputSurface, nullptr, _screenSurface, &_debugOutputRect );
 
-    DrawSprites( BackPriority );
+    // draw background sprites
+    if (_ppu->GetPpuCtrl() & 0x20)
+        DrawTallSprites(BackPriority);
+    else
+        DrawSprites(BackPriority);
 
     // draw frame
     SDL_LockSurface( _screenSurface );
@@ -210,10 +214,12 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
     SDL_UnlockSurface( _screenSurface );
 
     // draw sprites on top
-    DrawSprites( FrontPriority );
+    if (_ppu->GetPpuCtrl() & 0x20)
+        DrawTallSprites( FrontPriority );
+    else
+        DrawSprites(FrontPriority);
 }
 
-// todo: probably need to be drawn line by line to deal with overflow falg correctly
 void Renderer::DrawSprites( SpritePriority priority )
 {
     const u8 *oam = _ppu->GetOam();
@@ -221,8 +227,6 @@ void Renderer::DrawSprites( SpritePriority priority )
 
     // clear with color key
     SDL_FillRect( _spriteSurface, nullptr, 0 );
-
-    bool tallSprite = ppuCtrl & 0x20;
 
     SDL_Surface* srcPatternSurface = (ppuCtrl & 0x8) == 0
         ? _leftPatternTableSurface
@@ -232,8 +236,7 @@ void Renderer::DrawSprites( SpritePriority priority )
     SDL_Rect dst = { 0, 0, 8, 8 };
 
     SDL_LockSurface(_spriteSurface);
-    SDL_LockSurface(_leftPatternTableSurface);
-    SDL_LockSurface(_rightPatternTableSurface);
+    SDL_LockSurface(srcPatternSurface);
 
     for (u8 i=252; i>0; i-=4)
     {
@@ -250,14 +253,7 @@ void Renderer::DrawSprites( SpritePriority priority )
         dst.y = oam[i];
 
         // byte 1
-        u8 tileNum = tallSprite 
-            ? oam[i + 1] & 0xfe
-            : oam[i + 1];
-
-        if (tallSprite)
-            srcPatternSurface = (oam[i + 1] & 0x1) == 0
-                ? _leftPatternTableSurface
-                : _rightPatternTableSurface;
+        u8 tileNum = oam[i + 1];
 
         Flip flip = (Flip)(attrib >> 6);
         u8 hPalette = attrib & 0x3;
@@ -266,18 +262,79 @@ void Renderer::DrawSprites( SpritePriority priority )
         dst.x = oam[i+3];
 
         // blit
-        src.x = (tileNum << 3) & 0x7f;          // (tileNum * 8) & 0x7f
-        src.y = ((tileNum >> 4) << 3) & 0x7f;   // ((tileNum / 16) * 8) & 0x7f
+        src.x = (tileNum << 3) & 0x7f;   // aka (tileNum * 8) & 0x7f
+        src.y = (tileNum >> 1) & 0x78;   // aka ((tileNum / 16) * 8) & 0x7f
         BlitSprite( srcPatternSurface, &src, &dst, flip, hPalette );
+    }
 
-        if (tallSprite)
-        {
-            tileNum++;
-            dst.y += 8;
-            src.x = (tileNum << 3) & 0x7f;
-            src.y = ((tileNum >> 4) << 3) & 0x7f;
-            BlitSprite(srcPatternSurface, &src, &dst, flip, hPalette);
-        }
+    SDL_UnlockSurface(_spriteSurface);
+    SDL_UnlockSurface(srcPatternSurface);
+
+    // final blit on the screen
+    SDL_BlitSurface( _spriteSurface, nullptr, _screenSurface, &_mainScreenRect );
+}
+
+/// When PpuCtrl & 0x20, sprites are 8x16
+void Renderer::DrawTallSprites(SpritePriority priority)
+{
+    const u8* oam = _ppu->GetOam();
+
+    // clear with color key
+    SDL_FillRect(_spriteSurface, nullptr, 0);
+
+    SDL_Rect src = { 0, 0, 8, 8 };
+    SDL_Rect dst = { 0, 0, 8, 8 };
+
+    SDL_LockSurface(_spriteSurface);
+    SDL_LockSurface(_leftPatternTableSurface);
+    SDL_LockSurface(_rightPatternTableSurface);
+
+    for (u8 i = 252; i > 0; i -= 4)
+    {
+        // byte 2
+        u8 attrib = oam[i + 2];
+        SpritePriority prio = (attrib & 0x20) == 0
+            ? FrontPriority
+            : BackPriority;
+
+        if (prio != priority)
+            continue;
+
+        // byte 0
+        dst.y = oam[i];
+
+        SDL_Surface* srcPatternSurface = (oam[i + 1] & 0x1) == 0
+            ? _leftPatternTableSurface
+            : _rightPatternTableSurface;
+
+        Flip flip = (Flip)(attrib >> 6);
+        u8 hPalette = attrib & 0x3;
+
+        // byte 1
+        u8 tileNum = oam[i + 1] & 0xfe;
+
+        // bottom and top are inverted if vertical flip
+        u8 tileNumTop = flip & Vertical 
+            ? tileNum + 1
+            : tileNum;
+
+        u8 tileNumBottom = flip & Vertical
+            ? tileNum
+            : tileNum + 1;
+
+        // byte 3
+        dst.x = oam[i + 3];
+
+        // blit top part of tall sprite
+        src.x = (tileNumTop << 3) & 0x7f;   // aka (tileNum * 8) & 0x7f
+        src.y = (tileNumTop >> 1) & 0x78;   // aka ((tileNum / 16) * 8) & 0x7f
+        BlitSprite(srcPatternSurface, &src, &dst, flip, hPalette);
+
+        // blit bottom part of tall sprite
+        dst.y += 8;
+        src.x = (tileNumBottom << 3) & 0x7f;   // aka (tileNum * 8) & 0x7f
+        src.y = (tileNumBottom >> 1) & 0x78;   // aka ((tileNum / 16) * 8) & 0x7f
+        BlitSprite(srcPatternSurface, &src, &dst, flip, hPalette);
     }
 
     SDL_UnlockSurface(_spriteSurface);
@@ -285,7 +342,7 @@ void Renderer::DrawSprites( SpritePriority priority )
     SDL_UnlockSurface(_rightPatternTableSurface);
 
     // final blit on the screen
-    SDL_BlitSurface( _spriteSurface, nullptr, _screenSurface, &_mainScreenRect );
+    SDL_BlitSurface(_spriteSurface, nullptr, _screenSurface, &_mainScreenRect);
 }
 
 void Renderer::BlitSprite( SDL_Surface* patternSurface,
