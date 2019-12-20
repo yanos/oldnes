@@ -131,19 +131,7 @@ void Engine::RenderFrame()
         {
             vblankDone = true;
 
-            // TODO move this when sprite caching is implemented
-            //_renderer->DrawPatternTables( mapper->GetPatternTables() );
-
-            _renderer->DrawPatternTables();
-
             _renderer->DrawFrame( ppu->GetFrameData(), ppu->GetPalettes() );
-
-            if (_settings.ShowDebugViews)
-            {
-                _renderer->DrawPalettes( ppu->GetPalettes() );
-                _renderer->DrawNameTables( ppu->GetNameTables(),
-                                           ppu->GetPpuCtrl() );
-            }
 
             if (_settings.ShowDebugOutput)
             {

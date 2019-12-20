@@ -9,7 +9,7 @@
 #include <cmath>
 
 #ifdef _MSC_VER 
-    #include <stdio.h>    
+    #include <stdio.h>
     #define snprintf _snprintf
 #endif
 
@@ -90,7 +90,7 @@ Renderer::~Renderer()
     {
         SDL_DestroyRenderer( _sdlRenderer );
     }
-    
+ 
     if (_screenSurface != nullptr)
     {
         SDL_FreeSurface( _screenSurface );
@@ -177,14 +177,17 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
     SDL_SetPaletteColors( _rightPatternTableSurface->format->palette, bgColors, 0, 16 );
     SDL_SetPaletteColors( _nameTableSurface->format->palette, bgColors, 0, 16 );
     SDL_SetPaletteColors( _debugOutputSurface->format->palette, bgColors, 0, 16 );
-    
+
+    // probably not necessary every frame
     SDL_SetColorKey( _leftPatternTableSurface, SDL_RLEACCEL, 0 );
     SDL_SetColorKey( _rightPatternTableSurface, SDL_RLEACCEL, 0 );
     SDL_SetColorKey( _spriteSurface, SDL_RLEACCEL, 0 );
 
-    SDL_FillRect( _screenSurface, nullptr, palettes[12] );
+    SDL_FillRect( _screenSurface, nullptr, palettes[0] );
 
-    SDL_BlitSurface( _debugOutputSurface, nullptr, _screenSurface, &_debugOutputRect );
+    DrawPalettes();
+    DrawPatternTables();
+    DrawNameTables();
 
     // draw background sprites
     if (_ppu->GetPpuCtrl() & 0x20)
@@ -407,10 +410,8 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
     SDL_FreeSurface( txtSurface );
 }
 
-void Renderer::DrawPalettes( const u8* palettes )
+void Renderer::DrawPalettes()
 {
-    (palettes);
-
     //if (_ppu->IsPaletteDirty())
     {
         SDL_LockSurface( _bgPaletteSurface );
@@ -452,6 +453,9 @@ void Renderer::DrawPatternTables()
 {
     //if (_ppu->IsPaletteDirty())
     {
+        SDL_FillRect(_leftPatternTableSurface, nullptr, 0);
+        SDL_FillRect(_rightPatternTableSurface, nullptr, 0);
+
         SDL_LockSurface( _leftPatternTableSurface );
         SDL_LockSurface( _rightPatternTableSurface );
 
@@ -484,7 +488,7 @@ void Renderer::DrawPatternTables()
             DecodePatternLine( patternLine,
                                _mapper->ReadChr( 0x1000 + tileStart ),
                                _mapper->ReadChr( 0x1000 + tileStart + 8 ) );
-            
+
             pixelPtr = rPixels + y * rPitch + x * rBytesPerPixel;
 
             std::memcpy( pixelPtr, patternLine, 8 );
@@ -498,15 +502,19 @@ void Renderer::DrawPatternTables()
     SDL_BlitSurface( _rightPatternTableSurface, nullptr, _screenSurface, &_rightPatternTableRect );
 }
 
-void Renderer::DrawNameTables( const u8* nameTables, const u8 ppuCtrl )
+void Renderer::DrawNameTables()
 {
+    SDL_FillRect(_nameTableSurface, nullptr, 0);
+
     //if (_ppu->IsNameTableDirty())
     {
-        SDL_Surface* patternSurface = _leftPatternTableSurface;
-        if ((ppuCtrl & 0x10) != 0)
+       SDL_Surface* patternSurface = _leftPatternTableSurface;
+        if ((_ppu->GetPpuCtrl() & 0x10) != 0)
         {
             patternSurface = _rightPatternTableSurface;
         }
+
+        auto nameTables = _ppu->GetNameTables();
 
         SDL_Rect src = { 0, 0, 8, 8 };
         SDL_Rect dst = { 0, 0, 8, 8 };

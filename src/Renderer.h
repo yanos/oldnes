@@ -29,9 +29,9 @@ public:
     ~Renderer();
 
     void DrawFrame( const u8* frameData, const u8* palettes );
-    void DrawPalettes( const u8* palettes );
+    void DrawPalettes();
     void DrawPatternTables();
-    void DrawNameTables( const u8* nameTables, const u8 ppuCtrl );
+    void DrawNameTables();
     void DrawSprites( SpritePriority priority );
     void DrawTallSprites( SpritePriority priority );
     void DrawDebugOutput( const DebugOutput &debugOutput );

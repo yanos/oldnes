@@ -101,20 +101,20 @@ u32 Ppu::Step()
 
                     if ((_vramAddr & 0x7000) != 0x7000)                 // if fine Y < 7
                         _vramAddr += 0x1000;                            // increment fine Y
-                    else                                                
-                    {                                                   
+                    else
+                    {
                         _vramAddr &= ~0x7000;                           // fine Y = 0
                         int y = (_vramAddr & 0x3e0) >> 5;               // let y = coarse Y
-                        if (y == 29)                                    
-                        {                                               
+                        if (y == 29)
+                        {
                             y = 0;                                      // coarse Y = 0
                             _vramAddr ^= 0x800;                         // switch vertical nametable
-                        }                                               
-                        else if (y == 31)                               
+                        }
+                        else if (y == 31)
                             y = 0;                                      // coarse Y = 0, nametable not switched
-                        else                                            
+                        else
                             y += 1;                                     // increment coarse Y
-                
+
                         _vramAddr = (_vramAddr & ~0x3e0) | (y << 5);    // put coarse Y back into v
                     }
 
@@ -166,7 +166,7 @@ u32 Ppu::Step()
 
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
-                    
+
                     _tileBuffer.LowPatternByte = _mapper->ReadChr( baseIdx + offset );
                 }
 
@@ -177,7 +177,7 @@ u32 Ppu::Step()
 
                     u16 offset = 0x1000 * (_ppuCtrl & 0x10) >> 4;
                     u16 baseIdx = (_tileBuffer.NtByte * 16) + fineY;
-                    
+
                     _tileBuffer.HighPatternByte = _mapper->ReadChr( baseIdx + offset + 8 );
                 }
             }
@@ -334,7 +334,7 @@ byte Ppu::ReadByte( addr address )
         {
             u16 addrRead = _vramAddr;
             u8 valRead = ReadVramByte( addrRead );
-            
+
             if (_vramAddr < 0x3f00)
             {
                 retValue = _vramReadBuffer;
@@ -399,22 +399,22 @@ void Ppu::WriteByte( addr address, byte value )
             //_scrollY &= 0x80;
             //_scrollY |= (value & 0x2) << 6;
             break;
-            
+
         case 0x2001:    // PPUMASK
             _ppuMask = value;
             break;
-            
+
         case 0x2003:    // OAMADDR
             _oamAddr = value;
             break;
-            
+
         case 0x2004:    // OAMDATA
             _spriteDirty = true;
             _sprite0FlagDirty = _sprite0FlagDirty || _oamAddr < 4;
             _oamData[_oamAddr++] = value;
-                
+
             break;
-            
+
         case 0x2005:    // PPUSCROLL
             if (_firstWrite)
             {
@@ -434,12 +434,12 @@ void Ppu::WriteByte( addr address, byte value )
                 _tmpVramAddr |= ((value & 0x7) << 12);
                 _tmpVramAddr |= ((value & 0xf8) << 2);
             }
-            
+
             _firstWrite = !_firstWrite;
             break;
-            
+
         case 0x2006:    // PPUADDR
-            
+
             if (_firstWrite)
             {
                 // t: .FEDCBA ........ = d: ..FEDCBA
@@ -457,14 +457,14 @@ void Ppu::WriteByte( addr address, byte value )
                 _tmpVramAddr |= value;
                 _vramAddr = _tmpVramAddr;
             }
-            
+
             _firstWrite = !_firstWrite;
             break;
-            
-        case 0x2007:    // PPUDATA            
+
+        case 0x2007:    // PPUDATA
             WriteVramByte( _vramAddr, value );
             break;
-            
+
         default:
             assert (false);
             break;
