@@ -17,18 +17,18 @@
 
 class Mapper
 {
-    
+
 public:
     Mapper( Rom* );
     ~Mapper();
-    
+
     virtual byte ReadByte( addr ) = 0;
     virtual word ReadWord( addr ) = 0;
     virtual void WriteByte( addr, byte ) = 0;
-    
+
     virtual byte ReadChr( word ) = 0;
     virtual void WriteChr( word, byte ) = 0;
-    
+
     const MirroringMode GetMirroringMode() { return _mirroring; }
     
 //    std::function<byte(addr)>       _readByte;
@@ -37,7 +37,7 @@ public:
     
 protected:
     MirroringMode        _mirroring;
-    
+
     u32                  _prgDataSize;
     u32                  _chrDataSize;
 

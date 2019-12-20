@@ -62,9 +62,9 @@ Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
 
     for (int i=0; i<64; ++i)
     {
-        _masterColors[i].r = (NesPalette[i] & 0xff0000) >> 16;
-        _masterColors[i].g = (NesPalette[i] & 0x00ff00) >> 8;
-        _masterColors[i].b = NesPalette[i] & 0x0000ff;
+        _masterColors[i].r = (NesPalette[i] >> 16) & 0xff;
+        _masterColors[i].g = (NesPalette[i] >> 8) & 0xff;
+        _masterColors[i].b = NesPalette[i] & 0xff;
     }
 
     SetWinSize( NormalWinSize );
@@ -103,7 +103,7 @@ void Renderer::SetWinSize( WinSize winSize )
     {
         SDL_DestroyWindow( _mainWindow );
     }
-    
+
     _mainWindow = SDL_CreateWindow(
         "OldNES NEW",
         SDL_WINDOWPOS_UNDEFINED,
@@ -111,12 +111,12 @@ void Renderer::SetWinSize( WinSize winSize )
         _winSizes[winSize].x,
         _winSizes[winSize].y,
         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL );
-    
+
     if (_sdlRenderer != nullptr)
     {
         SDL_DestroyRenderer( _sdlRenderer );
     }
-    
+
     _sdlRenderer = SDL_CreateRenderer(
         _mainWindow,
         -1,
@@ -144,18 +144,18 @@ void Renderer::PresentScreen()
 {
     // clear screen
     SDL_RenderClear( _sdlRenderer );
-    
+
     auto texture = SDL_CreateTextureFromSurface(
         _sdlRenderer,
         _screenSurface );
-    
+
     SDL_RenderCopy( _sdlRenderer,
                     texture,
                     nullptr,
                     nullptr );
-    
+
     SDL_RenderPresent( _sdlRenderer );
-    
+
     // TODO update texture?
     SDL_DestroyTexture( texture );
 }
@@ -194,7 +194,11 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
 
     // draw frame
     SDL_LockSurface( _screenSurface );
-    
+
+    int pitch = _screenSurface->pitch;
+    u8 bpp = _screenSurface->format->BytesPerPixel;
+    u8* pixelsPtr = (u8*)_screenSurface->pixels;
+
     for (int y=0; y<240; ++y)
     {
         for (int x=0; x<256; ++x)
@@ -202,15 +206,12 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
             u8 pixValue = frameData[(y * _screenBufferWidth) + x + 8];
             if ((pixValue & 3) != 0)
             {
-                u8 *p = (u8*)_screenSurface->pixels
-                    + (y * _screenSurface->pitch)
-                    + (x * _screenSurface->format->BytesPerPixel);
-            
+                u8 *p = pixelsPtr + (y * pitch) + (x * bpp);
                 *p = palettes[ frameData[(y * _screenBufferWidth) + x + 8] ];
             }
         }
     }
-    
+
     SDL_UnlockSurface( _screenSurface );
 
     // draw sprites on top
@@ -351,31 +352,34 @@ void Renderer::BlitSprite( SDL_Surface* patternSurface,
                            Flip flip,
                            u8 palette )
 {
+    int patternPitch = patternSurface->pitch;
+    int spritePitch = _spriteSurface->pitch;
+    u8 patternBytesPerPixel = patternSurface->format->BytesPerPixel;
+    u8 spriteBytesPerPixel = _spriteSurface->format->BytesPerPixel;
+    u8* patternPixels = (u8*)patternSurface->pixels;
+    u8* spritePixels = (u8*)_spriteSurface->pixels;
+
     for (u8 y=0; y<8; ++y)
     {
         if (dst->y + y >= 240)
             break;
 
-        u8 ySrcOffset = flip & Vertical
-            ? 7 - y
-            : y;
+        u8 ySrcOffset = 
+            flip & Vertical ? 7 - y : y;
 
-        u8* pSrc = (u8*)patternSurface->pixels
-            + ((src->y + ySrcOffset) * patternSurface->pitch)
-            + (src->x * patternSurface->format->BytesPerPixel);
+        u8* pSrc = 
+            patternPixels + ((src->y + ySrcOffset) * patternPitch) + (src->x * patternBytesPerPixel);
 
-        u8* pDst = (u8*)_spriteSurface->pixels
-           + ((dst->y + y) * _spriteSurface->pitch)
-           + (dst->x * _spriteSurface->format->BytesPerPixel);
+        u8* pDst = 
+            spritePixels + ((dst->y + y) * spritePitch) + (dst->x * spriteBytesPerPixel);
 
         for (u8 x=0; x<8; ++x)
         {
             if (dst->x + x >= 256)
                 break;
 
-            u8 xSrcOffset = flip & Horizontal
-                ? 7 - x
-                : x;
+            u8 xSrcOffset = 
+                flip & Horizontal ? 7 - x : x;
 
             u8 val = (*(pSrc + xSrcOffset)) | (palette << 2);
             if ((val & 0x3) != 0)
@@ -392,10 +396,10 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
     char buffer[buffSize];
 
     _snprintf_s( buffer,
-                buffSize,
-                "fps %.1f max fps %.1f",
-                debugOutput.Fps,
-                debugOutput.MaxFps );
+                 buffSize,
+                 "fps %.1f max fps %.1f",
+                 debugOutput.Fps,
+                 debugOutput.MaxFps );
 
     auto txtSurface = TTF_RenderText_Solid( _courrierFont, buffer, txtColor );
 
@@ -412,6 +416,13 @@ void Renderer::DrawPalettes( const u8* palettes )
         SDL_LockSurface( _bgPaletteSurface );
         SDL_LockSurface( _objPaletteSurface );
 
+        int bgPalPitch = _bgPaletteSurface->pitch;
+        int objPalPitch = _objPaletteSurface->pitch;
+        u8 bgPalBytesPerPixel = _bgPaletteSurface->format->BytesPerPixel;
+        u8 objPalBytesPerPixel = _objPaletteSurface->format->BytesPerPixel;
+        u8* bgPalPixels = (u8*)_bgPaletteSurface->pixels;
+        u8* objPalPixels = (u8*)_objPaletteSurface->pixels;
+
         for (u8 palIdx = 0; palIdx < 0x10; ++palIdx)
         {
             u16 offsetX = 8 * (palIdx & 0xf);
@@ -420,13 +431,8 @@ void Renderer::DrawPalettes( const u8* palettes )
             {
                 for (u8 x = 0; x < 8; ++x)
                 {
-                    u8 *bgP = (u8*)_bgPaletteSurface->pixels
-                        + (y * _bgPaletteSurface->pitch)
-                        + (x + offsetX) * _bgPaletteSurface->format->BytesPerPixel;
-
-                    u8 *objP = (u8*)_objPaletteSurface->pixels
-                        + (y * _objPaletteSurface->pitch)
-                        + (x + offsetX) * _objPaletteSurface->format->BytesPerPixel;
+                    u8 *bgP = bgPalPixels + (y * bgPalPitch) + (x + offsetX) * bgPalBytesPerPixel;
+                    u8 *objP = objPalPixels + (y * objPalPitch) + (x + offsetX) * objPalBytesPerPixel;
 
                     *bgP = palIdx;
                     *objP = palIdx;
@@ -449,6 +455,13 @@ void Renderer::DrawPatternTables()
         SDL_LockSurface( _leftPatternTableSurface );
         SDL_LockSurface( _rightPatternTableSurface );
 
+        int lPitch = _leftPatternTableSurface->pitch;
+        int rPitch = _rightPatternTableSurface->pitch;
+        u8 lBytesPerPixel = _leftPatternTableSurface->format->BytesPerPixel;
+        u8 rBytesPerPixel = _rightPatternTableSurface->format->BytesPerPixel;
+        u8* lPixels = (u8*)_leftPatternTableSurface->pixels;
+        u8* rPixels = (u8*)_rightPatternTableSurface->pixels;
+
         u8* pixelPtr;
         u8 patternLine[8];
         for (u16 i=0; i<0x800; ++i)
@@ -462,10 +475,8 @@ void Renderer::DrawPatternTables()
             DecodePatternLine( patternLine,
                                _mapper->ReadChr( tileStart ),
                                _mapper->ReadChr( tileStart + 8 ) );
-            pixelPtr = 
-                (u8*)_leftPatternTableSurface->pixels
-                    + y * _leftPatternTableSurface->pitch
-                    + x * _leftPatternTableSurface->format->BytesPerPixel;
+
+            pixelPtr = lPixels + y * lPitch + x * lBytesPerPixel;
 
             std::memcpy( pixelPtr, patternLine, 8 );
 
@@ -473,10 +484,8 @@ void Renderer::DrawPatternTables()
             DecodePatternLine( patternLine,
                                _mapper->ReadChr( 0x1000 + tileStart ),
                                _mapper->ReadChr( 0x1000 + tileStart + 8 ) );
-            pixelPtr = 
-                (u8*)_rightPatternTableSurface->pixels
-                    + y * _rightPatternTableSurface->pitch
-                    + x * _rightPatternTableSurface->format->BytesPerPixel;
+            
+            pixelPtr = rPixels + y * rPitch + x * rBytesPerPixel;
 
             std::memcpy( pixelPtr, patternLine, 8 );
         }
@@ -545,7 +554,7 @@ void Renderer::DrawNameTables( const u8* nameTables, const u8 ppuCtrl )
                         u8* p = (u8*)_nameTableSurface->pixels
                             + ((y + yOffset) * _nameTableSurface->pitch)
                             + ((x + xOffset) * _nameTableSurface->format->BytesPerPixel);
-                        
+
                         u8 val = 0;
                         if (x < 16 && y < 16)
                             val = (*p) | tl;
@@ -555,7 +564,7 @@ void Renderer::DrawNameTables( const u8* nameTables, const u8 ppuCtrl )
                             val = (*p) | bl;
                         else
                             val = (*p) | br;
-                        
+
                         *p = (val & 0x3) == 0
                             ? 0
                             : val;
