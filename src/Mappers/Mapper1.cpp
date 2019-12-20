@@ -64,6 +64,8 @@ word Mapper1::ReadWord( word address )
 
     if (address < 0x8000)
     {
+        assert(address - 0x6000 + 1 < 0x2000);
+
         lbyte = _prgRam[address - 0x6000];
         hbyte = _prgRam[address - 0x6000 + 1];
     }
@@ -106,7 +108,7 @@ void Mapper1::WriteByte( word address, byte value )
         {
             // store result in the correct register based on last address
             _regs[(address >> 13) & 0b11] = _loadReg;
-            
+
             Apply();
 
             _writeCount = 0;

@@ -16,15 +16,14 @@
 
 class Ppu
 {
-    
 public:
     Ppu( std::shared_ptr<Mapper> mapper );
     ~Ppu();
-    
+
     byte ReadByte( addr );
     word ReadWord( addr );
     void WriteByte( addr, byte );
-    
+
     u32 Step();
 
     void VBlankStart();
@@ -40,10 +39,10 @@ public:
             //    int patate = 0;
             //}
         }
-    
+
     bool IsInVBlank()                                       { return (_ppuStatus & 0x80) > 0; }
     bool NmiAtVBlank()                                      { return (_ppuCtrl & 0x80) > 0;   }
-                                                            
+
     const u8  GetPpuCtrl()                                  { return _ppuCtrl;                }
     const u8  GetPpuMask()                                  { return _ppuMask;                }
     const u8  GetPpuStatus()                                { return _ppuStatus;              }
@@ -52,13 +51,13 @@ public:
     const u8* GetNameTables()                               { return _nameTables;             }
     const u8* GetOam()                                      { return _oamData;                }
     const u16 GetOamAddr()                                  { return _oamAddr;                }
-                                                            
+
     const u8*  GetFrameData()                               { return _frameData;              }
-                                                            
+
     const bool IsPaletteDirty()                             { return _paletteDirty;           }
     const bool IsPatternTableDirty()                        { return _patternTableDirty;      }
     const bool IsNameTableDirty()                           { return _nameTableDirty;         }
-                                                            
+
     const u16  GetCurrentScanline()                         { return _currentScanline;        }
     const u32  GetCurrentFramePixel()                       { return _currentFramePixel;      }
 
@@ -79,7 +78,7 @@ private:
         u8  HighPatternByte = 0;
     };
 
-    void IncHorizontalVramAddr()
+    inline void IncHorizontalVramAddr()
     {
         // The coarse X component of v needs to be incremented when the next tile is reached. 
         // Bits 0-4 are incremented, with overflow toggling bit 10. 
@@ -99,12 +98,12 @@ private:
     void FlushTileBuffer();
     void WriteVramByte( addr, byte );
     byte ReadVramByte( addr );
-    
+
     static const u16        _patternTableSize = 0x1000;
     static const u16        _nameTableSize = 0x400;
-    
+
     std::shared_ptr<Mapper> _mapper;
-    
+
     u32                     _currentFramePixel = 261 * _pixelPerScanline;
     u16                     _currentScanlinePixel = 0;
     u16                     _currentScanline = 261;
@@ -113,7 +112,7 @@ private:
 
     byte                    _oamData[0x100];
     addr                    _oamAddr = 0;
-                         
+
     u8                      _ppuCtrl = 0;
     u8                      _ppuMask = 0;
     u8                      _ppuStatus = 0;
@@ -132,13 +131,12 @@ private:
     addr                    _tmpVramAddr = 0;              // 15 bits
     byte                    _vramReadBuffer = 0;
     bool                    _firstWrite = true;
-    
+
     bool                    _sprite0FlagDirty = true;
     bool                    _spriteDirty = true;
     bool                    _nameTableDirty = true;
     bool                    _patternTableDirty = true;
     bool                    _paletteDirty = true;
-    
 };
 
 #endif /* defined(__OldNES__Ppu__) */

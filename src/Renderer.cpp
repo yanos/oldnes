@@ -398,11 +398,21 @@ void Renderer::DrawDebugOutput( const DebugOutput &debugOutput )
     const u8 buffSize = 64;
     char buffer[buffSize];
 
+    auto mirroring = _mapper->GetMirroringMode();
+    char mirroringChar = 'H';
+    if (mirroring == MirroringMode::Vertical)
+        mirroringChar = 'V';
+    else if (mirroring == MirroringMode::OneScreen)
+        mirroringChar = '1';
+    else if (mirroring == MirroringMode::FourScreen)
+        mirroringChar = '4';
+
     _snprintf_s( buffer,
                  buffSize,
-                 "fps %.1f max fps %.1f",
+                 "fps %.1f max fps %.1f m%c",
                  debugOutput.Fps,
-                 debugOutput.MaxFps );
+                 debugOutput.MaxFps,
+                 mirroringChar );
 
     auto txtSurface = TTF_RenderText_Solid( _courrierFont, buffer, txtColor );
 
