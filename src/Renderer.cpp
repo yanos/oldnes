@@ -28,8 +28,9 @@ static const u32 NesPalette[] =
     0xffF8D878, 0xffD8F878, 0xffB8F8B8, 0xffB8F8D8, 0xff00FCFC, 0xffF8D8F8, 0xff000000, 0xff000000
 };
 
-Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper )
+Renderer::Renderer( std::shared_ptr<Ppu> ppu, std::shared_ptr<Mapper> mapper, Settings *settings )
 {
+    _settings = settings;
     _mapper = mapper;
     _ppu = ppu;
 
@@ -190,10 +191,13 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
     DrawNameTables();
 
     // draw background sprites
-    if (_ppu->GetPpuCtrl() & 0x20)
-        DrawTallSprites(BackPriority);
-    else
-        DrawSprites(BackPriority);
+    if (_settings->ShowSprite)
+    {
+        if (_ppu->GetPpuCtrl() & 0x20)
+            DrawTallSprites(BackPriority);
+        else
+            DrawSprites(BackPriority);
+    }
 
     // draw frame
     SDL_LockSurface( _screenSurface );
@@ -217,11 +221,14 @@ void Renderer::DrawFrame( const u8* frameData, const u8* palettes )
 
     SDL_UnlockSurface( _screenSurface );
 
-    // draw sprites on top
-    if (_ppu->GetPpuCtrl() & 0x20)
-        DrawTallSprites( FrontPriority );
-    else
-        DrawSprites(FrontPriority);
+    if (_settings->ShowSprite)
+    {
+        // draw sprites on top
+        if (_ppu->GetPpuCtrl() & 0x20)
+            DrawTallSprites( FrontPriority );
+        else
+            DrawSprites(FrontPriority);
+    }
 }
 
 void Renderer::DrawSprites( SpritePriority priority )

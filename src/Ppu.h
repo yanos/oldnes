@@ -120,7 +120,6 @@ private:
     u8                      _frameData[_screenBufferWidth * _screenBufferHeight]; // 2 extra rows to remove some ifs
 
     u8                      _palettes[0x20];
-    //u8                    _paternTables[_patternTableSize * 2];
     u8                      _nameTables[_nameTableSize * 4];
                          
     u8                      _fineXScroll = 0;              // 3 bits

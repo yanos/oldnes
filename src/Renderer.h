@@ -25,7 +25,7 @@ public:
     enum WinSize { NormalWinSize = 0, DebugWinSize, NormalScanlineWinSize, DebugScanlineWinSize, MaxWinSize };
     enum SpritePriority { FrontPriority, BackPriority };
 
-    Renderer( std::shared_ptr<Ppu>, std::shared_ptr<Mapper> );
+    Renderer( std::shared_ptr<Ppu>, std::shared_ptr<Mapper>, Settings* settings );
     ~Renderer();
 
     void DrawFrame( const u8* frameData, const u8* palettes );
@@ -47,6 +47,7 @@ private:
 
     std::shared_ptr<Ppu>    _ppu;
     std::shared_ptr<Mapper> _mapper;
+    Settings*               _settings;
 
     SDL_Window*             _mainWindow = nullptr;
     TTF_Font*               _courrierFont = nullptr;
@@ -58,11 +59,11 @@ private:
     SDL_Rect                _rightPatternTableRect;
     SDL_Rect                _nameTableRect;
     SDL_Rect                _debugOutputRect;
-
+                            
     SDL_Point               _winSizes[MaxWinSize];
-
+                            
     SDL_Color               _masterColors[64];
-
+                            
     SDL_Renderer*           _sdlRenderer = nullptr;
     SDL_Surface*            _screenSurface = nullptr;
     SDL_Surface*            _bgPaletteSurface = nullptr;

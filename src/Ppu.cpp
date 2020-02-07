@@ -13,6 +13,7 @@
 Ppu::Ppu( std::shared_ptr<Mapper> mapper )
 {
     _mapper = mapper;
+    std::memset(&_nameTables, 0, sizeof(_nameTables));
 }
 
 Ppu::~Ppu() { }
@@ -88,7 +89,7 @@ void Ppu::FlushTileBuffer()
 u32 Ppu::Step()
 {
     // if spr and bg are enabled
-    if ((_ppuMask & 0x18) != 0)
+    if ((_ppuMask & 0x8) != 0)
     {
         if (_currentScanline < 240 || _currentScanline == 261) 
         {
@@ -96,7 +97,8 @@ u32 Ppu::Step()
             {
                 if (_currentScanlinePixel == 256)
                 {
-                    // If rendering is enabled, fine Y is incremented at dot 256 of each scanline, overflowing to coarse Y, and finally adjusted to wrap among the nametables vertically.
+                    // If rendering is enabled, fine Y is incremented at dot 256 of each scanline, 
+                    // overflowing to coarse Y, and finally adjusted to wrap among the nametables vertically.
                     // Bits 12-14 are fine Y. Bits 5-9 are coarse Y. Bit 11 selects the vertical nametable.
 
                     if ((_vramAddr & 0x7000) != 0x7000)                 // if fine Y < 7
@@ -139,7 +141,12 @@ u32 Ppu::Step()
                     if (_tileBuffer.Scanline != _dummyScanline)
                         FlushTileBuffer();
 
-                    u16 ntAddr = (_vramAddr & _mapper->GetMirroringMode()) & 0xfff;
+                    if (_vramAddr == 0)
+                    {
+                        _tileBuffer.Scanline = _currentScanline;
+                    }
+
+                    u16 ntAddr = MirroringTranslate(_vramAddr, _mapper->GetMirroringMode());
 
                     // start fetching next tile
                     _tileBuffer.Scanline = _currentScanline;
@@ -148,7 +155,7 @@ u32 Ppu::Step()
                     _tileBuffer.NtAddr = ntAddr;
                     _tileBuffer.NtByte = _nameTables[ntAddr];
 
-                    u16 baseAttribAddr = ((_vramAddr & _mapper->GetMirroringMode()) & 0xc00) + 0x3c0;
+                    u16 baseAttribAddr = (ntAddr & 0xc00) + 0x3c0;
                     u16 attribOffset = ((((ntAddr & 0x3ff) / 4) & 0x7)+ (8 * ((ntAddr & 0x3ff) / 128)));
                     _tileBuffer.AttribAddr = baseAttribAddr + attribOffset;
                 }
@@ -192,7 +199,7 @@ u32 Ppu::Step()
                     if (_tileBuffer.Scanline != _dummyScanline)
                         FlushTileBuffer();
 
-                    u16 ntAddr = (_vramAddr & _mapper->GetMirroringMode()) & 0xfff;
+                    u16 ntAddr = MirroringTranslate(_vramAddr, _mapper->GetMirroringMode());
 
                     _tileBuffer.Scanline = (_currentScanline + 1) % 240;
                     _tileBuffer.ScanlinePixel = (_currentScanlinePixel & 0x8); // 0 for 321, or 8 for 329
@@ -200,7 +207,7 @@ u32 Ppu::Step()
                     _tileBuffer.NtAddr = ntAddr;
                     _tileBuffer.NtByte = _nameTables[ntAddr];
 
-                    u16 baseAttribAddr = ((_vramAddr & _mapper->GetMirroringMode()) & 0xc00) + 0x3c0;
+                    u16 baseAttribAddr = (ntAddr & 0xc00) + 0x3c0;
                     u16 attribOffset = ((((ntAddr & 0x3ff) / 4) & 0x7)+ (8 * ((ntAddr & 0x3ff) / 128)));
                     _tileBuffer.AttribAddr = baseAttribAddr + attribOffset;
                 }
@@ -483,7 +490,7 @@ byte Ppu::ReadVramByte( addr address )
     }
     else if (address >= 0x2000 && address < 0x3f00)
     {
-        returnVal =  _nameTables[(address & _mapper->GetMirroringMode()) & 0xfff];
+        returnVal =  _nameTables[MirroringTranslate(address, _mapper->GetMirroringMode())];
     }
     else if (address >= 0x3f00 && address < 0x4000)
     {
@@ -510,7 +517,7 @@ void Ppu::WriteVramByte( addr address, byte value )
     }
     else if (address >= 0x2000 && address < 0x3f00)
     {
-        _nameTables[(address & _mapper->GetMirroringMode()) & 0xfff] = value;
+        _nameTables[MirroringTranslate(address, _mapper->GetMirroringMode())] = value;
 
         _nameTableDirty = true;
     }

@@ -28,7 +28,7 @@ Engine::Engine( string filename )
         new Ppu( _mapper ) );
 
     _renderer = std::unique_ptr<Renderer>( 
-        new Renderer( _ppu, _mapper ) );
+        new Renderer( _ppu, _mapper, &_settings ) );
 
     _input = std::shared_ptr<Input>( new Input() );
 

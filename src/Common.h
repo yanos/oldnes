@@ -21,13 +21,28 @@ static const u32   _pixelPerScanline  = 341;
 static const u32   _pixelPerCpuCycles = 3;
 static const u32   _vblankScanline    = 241;
 static const u32   _dummyScanline     = 261;
-static const u32   _scanlinePerFrame  = 262;
+static const u32   _scanlinePerFrame  = 262; 
 static const float _frameDuration     = 16.6667f;
 
 static const u32   _screenBufferWidth = 272;
 static const u32   _screenBufferHeight = 256;
 
-enum MirroringMode { Horizontal = ~0x400, Vertical = ~0x800, OneScreen, FourScreen };
+enum MirroringMode { Horizontal, Vertical, OneScreen, FourScreen };
+
+inline u16 MirroringTranslate(u16 addr, MirroringMode mode)
+{
+    switch (mode)
+    {
+        case Horizontal:
+            return addr & 0x3ff + ((addr & 0x800) >> 1);
+        case Vertical:
+            return addr & 0x7ff;
+        case OneScreen:
+            return addr & 0x3ff;
+        case FourScreen:
+            return addr & 0xfff;
+    }
+}
 
 struct DebugOutput
 {
